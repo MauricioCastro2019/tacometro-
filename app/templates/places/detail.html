@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}{{ place.name }} · Tacómetro{% endblock %}
+
+{% block content %}
+
+<!-- Header del lugar -->
+<div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden mb-6">
+  {% if place.image_url %}
+    <img src="{{ place.image_url }}" alt="{{ place.name }}" class="w-full h-56 object-cover">
+  {% else %}
+    <div class="w-full h-36 bg-dark-600 flex items-center justify-center text-6xl">🌮</div>
+  {% endif %}
+
+  <div class="p-6">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-black text-white">{{ place.name }}</h1>
+        {% if place.address %}
+          <p class="text-gray-500 mt-1 text-sm">📍 {{ place.address }}</p>
+        {% endif %}
+        {% if place.phone %}
+          <p class="text-gray-500 text-sm">📞 {{ place.phone }}</p>
+        {% endif %}
+      </div>
+
+      {% if place.avg_score %}
+        <div class="text-center bg-orange-500/10 border border-orange-500/30 rounded-2xl px-5 py-3 shrink-0">
+          <p class="text-4xl font-black text-orange-500">{{ place.avg_score }}</p>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ place.review_count }} reseña{{ 's' if place.review_count != 1 }}
+          </p>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if place.description %}
+      <p class="text-gray-400 mt-4 leading-relaxed text-sm">{{ place.description }}</p>
+    {% endif %}
+
+    <div class="mt-6 flex gap-3 flex-wrap">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('reviews.create', place_id=place.id) }}"
+           class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20">
+          Escribir reseña
+        </a>
+      {% else %}
+        <a href="{{ url_for('auth.login') }}"
+           class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition">
+          Inicia sesión para calificar
+        </a>
+      {% endif %}
+      {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
+           class="border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-5 py-2.5 rounded-xl transition">
+          Editar
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Reseñas -->
+<h2 class="text-lg font-bold text-gray-300 mb-4">
+  Reseñas
+  {% if reviews %}<span class="text-gray-600 font-normal text-sm">({{ reviews|length }})</span>{% endif %}
+</h2>
+
+{% if reviews %}
+  <div class="space-y-4">
+    {% for review in reviews %}
+      <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-3">
+            <div class="bg-orange-500/20 text-orange-400 font-bold rounded-full w-9 h-9 flex items-center justify-center text-sm">
+              {{ review.author.username[0].upper() }}
+            </div>
+            <span class="font-semibold text-gray-200">{{ review.author.username }}</span>
+          </div>
+          <span class="text-orange-500 font-black text-2xl">{{ review.overall_score }}</span>
+        </div>
+
+        <!-- Criterios -->
+        <div class="grid grid-cols-3 gap-2 text-xs text-gray-500 mb-4 bg-dark-600 rounded-xl p-3">
+          {% set criterios = [
+            ('Sabor', review.taste_score),
+            ('Carne', review.meat_score),
+            ('Salsa', review.sauce_score),
+            ('Tortilla', review.tortilla_score),
+            ('Precio', review.value_score),
+            ('Higiene', review.hygiene_score),
+          ] %}
+          {% for label, score in criterios %}
+            <div class="flex justify-between px-1">
+              <span>{{ label }}</span>
+              <strong class="text-gray-300">{{ score }}</strong>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if review.comment %}
+          <p class="text-gray-400 text-sm leading-relaxed">{{ review.comment }}</p>
+        {% endif %}
+
+        <p class="text-gray-700 text-xs mt-3">{{ review.created_at.strftime('%d/%m/%Y') }}</p>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="border border-white/5 rounded-2xl p-10 text-center text-gray-600">
+    <p class="text-4xl mb-3">🌮</p>
+    <p>Aún no hay reseñas. ¡Sé el primero en calificar!</p>
+  </div>
+{% endif %}
+{% endblock %}

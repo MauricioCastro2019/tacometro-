@@ -1,0 +1,35 @@
+# Entorno virtual
+venv/
+env/
+.venv/
+
+# Variables de entorno (NUNCA subir)
+.env
+
+# Base de datos local
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Uploads / archivos generados
+app/static/uploads/
+
+# VS Code
+.vscode/
+
+# Snapshots internos
+.snapshots/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Capturas de pantalla (no son assets del proyecto)
+app/static/img/Captura*

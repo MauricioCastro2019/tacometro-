@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(c:/Users/XPS/OneDrive/Desktop/tacometro/venv/Scripts/pip.exe list:*)",
+      "Bash(venv/Scripts/python.exe -m ensurepip --upgrade)",
+      "Bash(venv/Scripts/pip.exe install:*)",
+      "Bash(cmd /c \"c:\\\\Users\\\\XPS\\\\OneDrive\\\\Desktop\\\\tacometro\\\\venv\\\\Scripts\\\\python.exe -m pip install Flask Flask-SQLAlchemy Flask-Migrate Flask-Login Flask-WTF python-dotenv Pillow\")",
+      "Bash(cmd /c \"cd /d c:\\\\Users\\\\XPS\\\\OneDrive\\\\Desktop\\\\tacometro && venv\\\\Scripts\\\\python.exe -m pip install Flask Flask-SQLAlchemy Flask-Migrate Flask-Login Flask-WTF python-dotenv Pillow 2>&1\")",
+      "Bash(powershell -Command \"Set-Location 'c:\\\\Users\\\\XPS\\\\OneDrive\\\\Desktop\\\\tacometro'; & '.\\\\venv\\\\Scripts\\\\python.exe' -m flask db upgrade 2>&1\")"
+    ]
+  }
+}

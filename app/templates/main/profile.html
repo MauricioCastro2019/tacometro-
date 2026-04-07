@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Mi perfil · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="bg-dark-700 border border-white/5 rounded-2xl p-6 mb-6 flex items-center gap-5">
+  <div class="bg-orange-500/20 text-orange-400 rounded-full w-16 h-16 flex items-center justify-center text-2xl font-black shrink-0">
+    {{ current_user.username[0].upper() }}
+  </div>
+  <div>
+    <h1 class="text-2xl font-bold text-white">{{ current_user.username }}</h1>
+    <p class="text-gray-600 text-sm">{{ current_user.email }}</p>
+    <p class="text-gray-600 text-sm mt-1">
+      {{ reviews|length }} reseña{{ 's' if reviews|length != 1 }} publicada{{ 's' if reviews|length != 1 }}
+    </p>
+  </div>
+</div>
+
+<h2 class="text-lg font-bold text-gray-300 mb-4">Mis reseñas</h2>
+
+{% if reviews %}
+  <div class="space-y-4">
+    {% for review in reviews %}
+      <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+        <div class="flex items-start justify-between gap-4 mb-4">
+          <a href="{{ url_for('places.detail', slug=review.place.slug) }}"
+             class="font-bold text-gray-100 hover:text-orange-400 transition text-lg leading-tight">
+            {{ review.place.name }}
+          </a>
+          <span class="text-orange-500 font-black text-2xl shrink-0">{{ review.overall_score }}</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-xs text-gray-500 bg-dark-600 rounded-xl p-3 mb-3">
+          {% for label, score in [
+            ('Sabor', review.taste_score), ('Carne', review.meat_score),
+            ('Salsa', review.sauce_score), ('Tortilla', review.tortilla_score),
+            ('Precio', review.value_score), ('Higiene', review.hygiene_score)
+          ] %}
+            <div class="flex justify-between px-1">
+              <span>{{ label }}</span>
+              <strong class="text-gray-300">{{ score }}</strong>
+            </div>
+          {% endfor %}
+        </div>
+
+        {% if review.comment %}
+          <p class="text-gray-400 text-sm leading-relaxed">{{ review.comment }}</p>
+        {% endif %}
+
+        <p class="text-gray-700 text-xs mt-3">
+          {{ review.created_at.strftime('%d/%m/%Y') }} ·
+          <a href="{{ url_for('places.detail', slug=review.place.slug) }}"
+             class="hover:text-orange-400 transition">Ver taquería →</a>
+        </p>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="border border-white/5 rounded-2xl p-10 text-center text-gray-600">
+    <p class="text-4xl mb-3">📋</p>
+    <p class="font-medium text-gray-400">Aún no has escrito ninguna reseña.</p>
+    <a href="{{ url_for('places.index') }}"
+       class="inline-block mt-4 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition">
+      Ver taquerías
+    </a>
+  </div>
+{% endif %}
+{% endblock %}

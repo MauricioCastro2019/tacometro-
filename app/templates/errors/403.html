@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}Acceso denegado · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="text-center py-24">
+  <p class="text-7xl mb-4">🚫</p>
+  <h1 class="text-6xl font-black text-white mb-2">403</h1>
+  <p class="text-gray-500 text-lg mb-8">No tienes permiso para entrar aquí, amigo.</p>
+  <a href="{{ url_for('main.index') }}"
+     class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-xl transition">
+    Volver al inicio
+  </a>
+</div>
+{% endblock %}

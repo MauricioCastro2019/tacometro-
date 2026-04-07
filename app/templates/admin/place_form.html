@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{{ url_for('admin.index') }}"
+       class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
+    <h1 class="text-2xl font-bold text-white">{{ title }}</h1>
+  </div>
+
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-6">
+    <form method="POST" novalidate class="space-y-5">
+      {{ form.hidden_tag() }}
+
+      {% macro df(f, full=true) %}
+        <div>
+          {{ f.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
+          {{ f(class=("w-full " if full else "") + "bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition" + (' border-red-500' if f.errors else '')) }}
+          {% for error in f.errors %}<p class="text-red-400 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+      {% endmacro %}
+
+      {{ df(form.name) }}
+
+      <div>
+        {{ form.description.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
+        {{ form.description(class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition h-28 resize-none") }}
+      </div>
+
+      {{ df(form.address) }}
+
+      <div class="grid grid-cols-2 gap-4">
+        {{ df(form.city) }}
+        {{ df(form.state) }}
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        {{ df(form.phone) }}
+        <div>
+          {{ form.category_id.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
+          {{ form.category_id(class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition") }}
+          {% for error in form.category_id.errors %}<p class="text-red-400 text-xs mt-1">{{ error }}</p>{% endfor %}
+        </div>
+      </div>
+
+      {{ df(form.image_url) }}
+
+      <div class="flex items-center gap-2 pt-1">
+        {{ form.is_active(class="rounded bg-dark-600 border-white/20 accent-orange-500") }}
+        {{ form.is_active.label(class="text-sm text-gray-400") }}
+      </div>
+
+      <div class="flex gap-3 pt-2">
+        {{ form.submit(class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20") }}
+        <a href="{{ url_for('admin.index') }}"
+           class="border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-6 py-2.5 rounded-xl transition">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

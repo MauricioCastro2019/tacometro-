@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Crear cuenta · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto">
+  <div class="text-center mb-8">
+    <img src="{{ url_for('static', filename='img/logo.png') }}"
+         alt="Tacómetro" class="h-16 w-auto mx-auto mb-4"
+         onerror="this.style.display='none'">
+    <h1 class="text-2xl font-bold text-white">Crear cuenta</h1>
+  </div>
+
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-8">
+    <form method="POST" novalidate class="space-y-5">
+      {{ form.hidden_tag() }}
+
+      {% macro dark_field(f) %}
+        <div>
+          {{ f.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
+          {{ f(class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition" + (' border-red-500' if f.errors else '')) }}
+          {% for error in f.errors %}
+            <p class="text-red-400 text-xs mt-1">{{ error }}</p>
+          {% endfor %}
+        </div>
+      {% endmacro %}
+
+      {{ dark_field(form.username) }}
+      {{ dark_field(form.email) }}
+      {{ dark_field(form.password) }}
+      {{ dark_field(form.password2) }}
+
+      {{ form.submit(class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20 mt-2") }}
+    </form>
+
+    <p class="text-center text-sm text-gray-600 mt-6">
+      ¿Ya tienes cuenta?
+      <a href="{{ url_for('auth.login') }}" class="text-orange-400 font-medium hover:underline">Inicia sesión</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

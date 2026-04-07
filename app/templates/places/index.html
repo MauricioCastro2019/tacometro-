@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Taquerías · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-white">Taquerías en León</h1>
+  {% if current_user.is_authenticated and current_user.is_admin %}
+    <a href="{{ url_for('admin.place_create') }}"
+       class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
+      + Nueva taquería
+    </a>
+  {% endif %}
+</div>
+
+{% if places %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for place in places %}
+      <a href="{{ url_for('places.detail', slug=place.slug) }}"
+         class="bg-dark-700 border border-white/5 hover:border-orange-500/40 rounded-2xl overflow-hidden flex flex-col transition group">
+
+        {% if place.image_url %}
+          <img src="{{ place.image_url }}" alt="{{ place.name }}"
+               class="w-full h-40 object-cover">
+        {% else %}
+          <div class="w-full h-40 bg-dark-600 flex items-center justify-center text-5xl">🌮</div>
+        {% endif %}
+
+        <div class="p-4 flex flex-col flex-1">
+          <h2 class="font-bold text-gray-100 text-lg leading-tight group-hover:text-orange-400 transition">
+            {{ place.name }}
+          </h2>
+          <p class="text-gray-500 text-sm mt-1 truncate">{{ place.address or place.city }}</p>
+
+          <div class="mt-auto pt-4 flex items-center justify-between">
+            {% if place.avg_score %}
+              <span class="text-orange-500 font-black text-2xl">{{ place.avg_score }}</span>
+              <span class="text-gray-600 text-xs">
+                {{ place.review_count }} reseña{{ 's' if place.review_count != 1 }}
+              </span>
+            {% else %}
+              <span class="text-gray-600 text-sm italic">Sin reseñas</span>
+            {% endif %}
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="border border-white/5 rounded-2xl p-16 text-center text-gray-600">
+    No hay taquerías registradas todavía.
+  </div>
+{% endif %}
+{% endblock %}

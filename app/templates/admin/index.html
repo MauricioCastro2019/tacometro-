@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-white">Panel de administración</h1>
+  <a href="{{ url_for('admin.place_create') }}"
+     class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
+    + Nueva taquería
+  </a>
+</div>
+
+<div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="border-b border-white/5">
+      <tr class="text-xs text-gray-600 uppercase tracking-wider">
+        <th class="text-left px-5 py-3">Nombre</th>
+        <th class="text-left px-5 py-3">Ciudad</th>
+        <th class="text-center px-5 py-3">Reseñas</th>
+        <th class="text-center px-5 py-3">Score</th>
+        <th class="text-center px-5 py-3">Activa</th>
+        <th class="px-5 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-white/5">
+      {% for place in places %}
+        <tr class="hover:bg-dark-600 transition">
+          <td class="px-5 py-3 font-semibold text-gray-200">{{ place.name }}</td>
+          <td class="px-5 py-3 text-gray-500">{{ place.city }}</td>
+          <td class="px-5 py-3 text-center text-gray-500">{{ place.review_count }}</td>
+          <td class="px-5 py-3 text-center font-black text-orange-500">
+            {{ place.avg_score or '—' }}
+          </td>
+          <td class="px-5 py-3 text-center">
+            {% if place.is_active %}
+              <span class="text-green-500">●</span>
+            {% else %}
+              <span class="text-gray-700">●</span>
+            {% endif %}
+          </td>
+          <td class="px-5 py-3 text-right">
+            <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
+               class="text-orange-400 hover:text-orange-300 font-semibold transition">Editar</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="6" class="px-5 py-10 text-center text-gray-700">
+            No hay taquerías registradas.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

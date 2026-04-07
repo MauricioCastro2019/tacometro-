@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Calificar {{ place.name }} · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{{ url_for('places.detail', slug=place.slug) }}"
+       class="text-gray-600 hover:text-orange-400 text-sm transition">← {{ place.name }}</a>
+    <h1 class="text-2xl font-bold text-white">Calificar</h1>
+  </div>
+
+  <!-- Score en vivo -->
+  <div class="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-5 mb-6 text-center">
+    <p class="text-xs text-gray-500 mb-1 uppercase tracking-widest">Score general</p>
+    <p id="live-score" class="text-6xl font-black text-orange-500 tabular-nums">5.0</p>
+    <p class="text-xs text-gray-600 mt-1">Se actualiza mientras calificas</p>
+  </div>
+
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-6">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      <input type="hidden" name="place_id" value="{{ place.id }}">
+
+      {% set criterios = [
+        (form.taste_score,    'Sabor',          '30%', 'taste'),
+        (form.meat_score,     'Carne',          '20%', 'meat'),
+        (form.sauce_score,    'Salsa',          '15%', 'sauce'),
+        (form.tortilla_score, 'Tortilla',       '15%', 'tortilla'),
+        (form.value_score,    'Precio-calidad', '10%', 'value'),
+        (form.hygiene_score,  'Higiene',        '10%', 'hygiene'),
+      ] %}
+
+      <div class="space-y-7 mb-7">
+        {% for field, label, peso, key in criterios %}
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="font-semibold text-gray-200 text-sm">
+                {{ label }}
+                <span class="text-xs text-gray-600 font-normal ml-1">{{ peso }}</span>
+              </label>
+              <span id="val-{{ key }}"
+                    class="text-2xl font-black text-orange-500 w-10 text-right tabular-nums">
+                5
+              </span>
+            </div>
+            <input
+              type="range"
+              id="{{ field.id }}"
+              name="{{ field.name }}"
+              min="1" max="10" value="5"
+              data-key="{{ key }}"
+              class="w-full h-2 rounded-full accent-orange-500 cursor-pointer bg-dark-500"
+              oninput="updateScore(this)"
+            >
+            <div class="flex justify-between text-xs text-gray-700 mt-1.5">
+              <span>1 Malo</span>
+              <span>10 Excelente</span>
+            </div>
+            {% for error in field.errors %}
+              <p class="text-red-400 text-xs mt-1">{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Comentario -->
+      <div class="mb-6">
+        {{ form.comment.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
+        {{ form.comment(
+          class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition h-24 resize-none",
+          placeholder="¿Qué destacas de esta taquería? (opcional)"
+        ) }}
+      </div>
+
+      {{ form.submit(class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-orange-500/20 text-base") }}
+    </form>
+  </div>
+</div>
+
+<script>
+  const pesos  = { taste: 0.30, meat: 0.20, sauce: 0.15, tortilla: 0.15, value: 0.10, hygiene: 0.10 };
+  const valores = { taste: 5, meat: 5, sauce: 5, tortilla: 5, value: 5, hygiene: 5 };
+
+  function updateScore(input) {
+    const key = input.dataset.key;
+    valores[key] = parseInt(input.value);
+    document.getElementById('val-' + key).textContent = input.value;
+
+    const score = Object.keys(pesos).reduce((sum, k) => sum + valores[k] * pesos[k], 0);
+    document.getElementById('live-score').textContent = score.toFixed(1);
+  }
+</script>
+{% endblock %}
