@@ -103,7 +103,12 @@ def _parse_rows(file_storage):
         ]
     else:
         content = file_storage.read().decode('utf-8-sig')
-        reader = csv.DictReader(io.StringIO(content))
+        sample = content[:4096]
+        try:
+            dialect = csv.Sniffer().sniff(sample, delimiters=',;\t|')
+        except csv.Error:
+            dialect = csv.excel
+        reader = csv.DictReader(io.StringIO(content), dialect=dialect)
         return [
             {_normalize_header(k): (v.strip() if v else '') for k, v in row.items()}
             for row in reader
