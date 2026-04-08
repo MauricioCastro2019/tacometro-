@@ -86,6 +86,15 @@ def _normalize_header(h):
     return h.strip().lower().replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u').replace('/', '').replace(' ', '')
 
 
+def _find_header_row(rows):
+    """Devuelve el índice de la fila que contiene 'nombre' como encabezado real."""
+    for i, row in enumerate(rows):
+        normalized = [_normalize_header(str(c)) if c else '' for c in row]
+        if 'nombre' in normalized:
+            return i
+    return 0
+
+
 def _parse_rows(file_storage):
     """Devuelve lista de dicts normalizados desde .xlsx o .csv."""
     filename = file_storage.filename.lower()
@@ -96,10 +105,11 @@ def _parse_rows(file_storage):
         rows = list(ws.iter_rows(values_only=True))
         if not rows:
             return []
-        headers = [_normalize_header(str(c)) if c else '' for c in rows[0]]
+        header_idx = _find_header_row(rows)
+        headers = [_normalize_header(str(c)) if c else '' for c in rows[header_idx]]
         return [
             {headers[i]: (str(v).strip() if v is not None else '') for i, v in enumerate(row)}
-            for row in rows[1:]
+            for row in rows[header_idx + 1:]
         ]
     else:
         content = file_storage.read().decode('utf-8-sig')
@@ -108,10 +118,15 @@ def _parse_rows(file_storage):
             dialect = csv.Sniffer().sniff(sample, delimiters=',;\t|')
         except csv.Error:
             dialect = csv.excel
-        reader = csv.DictReader(io.StringIO(content), dialect=dialect)
+        all_rows = list(csv.reader(io.StringIO(content), dialect=dialect))
+        if not all_rows:
+            return []
+        header_idx = _find_header_row(all_rows)
+        headers = [_normalize_header(c) for c in all_rows[header_idx]]
         return [
-            {_normalize_header(k): (v.strip() if v else '') for k, v in row.items()}
-            for row in reader
+            {headers[i]: (v.strip() if v else '') for i, v in enumerate(row)}
+            for row in all_rows[header_idx + 1:]
+            if any(v.strip() for v in row)
         ]
 
 
