@@ -15,6 +15,8 @@ class Place(db.Model):
     phone = db.Column(db.String(20))
     image_url = db.Column(db.String(256))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Clave foránea

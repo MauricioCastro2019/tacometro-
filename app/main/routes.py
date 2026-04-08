@@ -1,4 +1,4 @@
-from flask import render_template, abort
+from flask import render_template, jsonify
 from flask_login import login_required, current_user
 from app.main import main
 from app.models.place import Place
@@ -26,3 +26,27 @@ def profile():
         .all()
     )
     return render_template('main/profile.html', reviews=reviews)
+
+
+@main.route('/mapa')
+def mapa():
+    return render_template('main/map.html')
+
+
+@main.route('/api/places')
+def api_places():
+    places = Place.query.filter_by(is_active=True).all()
+    result = []
+    for p in places:
+        result.append({
+            'id': p.id,
+            'name': p.name,
+            'address': p.address or '',
+            'category': p.category.name if p.category else '',
+            'avg_score': p.avg_score,
+            'review_count': p.review_count,
+            'lat': p.latitude,
+            'lng': p.longitude,
+            'url': f'/places/{p.slug}',
+        })
+    return jsonify(result)

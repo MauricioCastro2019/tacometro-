@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% block title %}Mapa · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-bold text-white">Taquerías cerca de ti</h1>
+  <button id="btn-locate"
+          class="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition shadow-lg shadow-orange-500/20">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+    Mi ubicación
+  </button>
+</div>
+
+<!-- Layout: mapa + lista lateral -->
+<div class="flex gap-4" style="height: 600px;">
+
+  <!-- Mapa -->
+  <div class="flex-1 rounded-2xl overflow-hidden border border-white/10 relative">
+    <div id="map" class="w-full h-full"></div>
+    <div id="map-status"
+         class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-dark-800/90 text-xs text-gray-400 px-3 py-1.5 rounded-full hidden">
+    </div>
+  </div>
+
+  <!-- Lista de taquerías cercanas -->
+  <div class="w-72 flex flex-col gap-2 overflow-y-auto pr-1" id="sidebar">
+    <p class="text-xs text-gray-600 uppercase tracking-wider font-semibold px-1">
+      Taquerías (<span id="count">–</span>)
+    </p>
+    <div id="place-list" class="flex flex-col gap-2">
+      <p class="text-gray-700 text-sm px-1">Activa la ubicación para ver las más cercanas.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Leaflet CSS + JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────
+const LEON = [21.1236, -101.6863];
+const TACO_ICON_COLOR = '#f97316';
+
+// ── Mapa ─────────────────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true }).setView(LEON, 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom: 19,
+}).addTo(map);
+
+// ── Iconos personalizados ─────────────────────────────────────────────────
+function makeIcon(color, size = 32) {
+  return L.divIcon({
+    className: '',
+    html: `<svg width="${size}" height="${size}" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="13" r="9" fill="${color}" stroke="white" stroke-width="2"/>
+      <text x="16" y="17" text-anchor="middle" font-size="12" fill="white">🌮</text>
+      <polygon points="11,20 21,20 16,28" fill="${color}"/>
+    </svg>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size],
+    popupAnchor: [0, -size],
+  });
+}
+
+const tacoIcon  = makeIcon(TACO_ICON_COLOR);
+const tacoIconNear = makeIcon('#22c55e');
+const userIcon = L.divIcon({
+  className: '',
+  html: `<div style="width:16px;height:16px;background:#3b82f6;border:3px solid white;border-radius:50%;box-shadow:0 0 0 4px rgba(59,130,246,0.3)"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
+// ── Estado ────────────────────────────────────────────────────────────────
+let userMarker = null;
+let userLatLng = null;
+let allPlaces  = [];
+let markers    = [];
+
+// ── Cargar taquerías desde API ────────────────────────────────────────────
+fetch('/api/places')
+  .then(r => r.json())
+  .then(data => {
+    allPlaces = data.filter(p => p.lat && p.lng);
+    renderMarkers(allPlaces);
+    document.getElementById('count').textContent = allPlaces.length;
+    if (allPlaces.length === 0) {
+      showStatus('Sin coordenadas aún. El admin debe geocodificar las taquerías.');
+    }
+  });
+
+function renderMarkers(places) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  places.forEach(p => {
+    const m = L.marker([p.lat, p.lng], { icon: tacoIcon })
+      .addTo(map)
+      .bindPopup(popupHtml(p));
+    markers.push(m);
+  });
+}
+
+function popupHtml(p) {
+  const score = p.avg_score ? `⭐ ${p.avg_score}` : 'Sin reseñas';
+  return `
+    <div style="font-family:sans-serif;min-width:160px">
+      <p style="font-weight:700;font-size:14px;margin:0 0 4px">${p.name}</p>
+      <p style="font-size:12px;color:#888;margin:0 0 4px">${p.category}</p>
+      <p style="font-size:11px;color:#aaa;margin:0 0 6px">${p.address}</p>
+      <p style="font-size:12px;margin:0 0 8px">${score} · ${p.review_count} reseña(s)</p>
+      <a href="${p.url}" style="background:#f97316;color:white;padding:4px 10px;border-radius:6px;text-decoration:none;font-size:12px;font-weight:600">
+        Ver taquería →
+      </a>
+    </div>`;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────
+function renderSidebar(places) {
+  const list = document.getElementById('place-list');
+  document.getElementById('count').textContent = places.length;
+  if (!places.length) {
+    list.innerHTML = '<p class="text-gray-600 text-sm px-1">No hay taquerías con ubicación disponible.</p>';
+    return;
+  }
+  list.innerHTML = places.map((p, i) => {
+    const dist = p._dist ? `<span class="text-orange-400 font-semibold">${p._dist} km</span>` : '';
+    const score = p.avg_score ? `⭐ ${p.avg_score}` : '–';
+    return `
+      <a href="${p.url}"
+         class="block bg-dark-700 hover:bg-dark-600 border border-white/5 rounded-xl px-3 py-2.5 transition cursor-pointer"
+         onmouseenter="highlightMarker(${i})" onmouseleave="unhighlightMarker(${i})">
+        <div class="flex items-start justify-between gap-1">
+          <p class="text-sm font-semibold text-gray-200 leading-tight">${p.name}</p>
+          ${dist}
+        </div>
+        <p class="text-xs text-gray-600 mt-0.5">${p.category} · ${score}</p>
+      </a>`;
+  }).join('');
+}
+
+function highlightMarker(i) {
+  if (markers[i]) markers[i].setIcon(tacoIconNear);
+}
+function unhighlightMarker(i) {
+  if (markers[i]) markers[i].setIcon(tacoIcon);
+}
+
+// ── Geolocalización ───────────────────────────────────────────────────────
+document.getElementById('btn-locate').addEventListener('click', () => {
+  if (!navigator.geolocation) {
+    showStatus('Tu navegador no soporta geolocalización.');
+    return;
+  }
+  showStatus('Buscando tu ubicación…');
+  navigator.geolocation.getCurrentPosition(onLocation, onLocationError, {
+    enableHighAccuracy: true, timeout: 10000,
+  });
+});
+
+function onLocation(pos) {
+  userLatLng = [pos.coords.latitude, pos.coords.longitude];
+
+  if (userMarker) map.removeLayer(userMarker);
+  userMarker = L.marker(userLatLng, { icon: userIcon })
+    .addTo(map)
+    .bindPopup('<b>Estás aquí</b>')
+    .openPopup();
+
+  map.setView(userLatLng, 14);
+  hideStatus();
+
+  // Calcular distancias y ordenar
+  const sorted = allPlaces
+    .map(p => ({ ...p, _dist: haversine(userLatLng, [p.lat, p.lng]) }))
+    .sort((a, b) => a._dist - b._dist);
+
+  // Re-renderizar marcadores ordenados y sidebar
+  renderMarkers(sorted);
+  renderSidebar(sorted);
+
+  // Abrir popup del más cercano
+  if (markers[0]) markers[0].openPopup();
+}
+
+function onLocationError(err) {
+  showStatus('No se pudo obtener tu ubicación. Verifica los permisos del navegador.');
+}
+
+// ── Haversine (km) ────────────────────────────────────────────────────────
+function haversine([lat1, lon1], [lat2, lon2]) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+            Math.sin(dLon/2)**2;
+  return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(2);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function showStatus(msg) {
+  const el = document.getElementById('map-status');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function hideStatus() {
+  document.getElementById('map-status').classList.add('hidden');
+}
+
+// Render inicial (sin ubicación)
+fetch('/api/places').then(r => r.json()).then(places => {
+  const withCoords = places.filter(p => p.lat && p.lng);
+  renderSidebar(withCoords);
+});
+</script>
+{% endblock %}

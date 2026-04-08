@@ -1,5 +1,9 @@
 import csv
 import io
+import time
+import urllib.request
+import urllib.parse
+import json
 from flask import render_template, redirect, url_for, flash, abort
 from flask_login import login_required
 from app.admin import admin
@@ -199,3 +203,43 @@ def import_places():
         flash(msg, 'success' if created > 0 else 'warning')
         return redirect(url_for('admin.index'))
     return render_template('admin/import.html', form=form)
+
+
+@admin.route('/geocode', methods=['POST'])
+@login_required
+@admin_required
+def geocode_places():
+    places = Place.query.filter(
+        Place.is_active == True,
+        (Place.latitude == None) | (Place.longitude == None)
+    ).all()
+
+    if not places:
+        flash('Todas las taquerías ya tienen coordenadas.', 'info')
+        return redirect(url_for('admin.index'))
+
+    ok = failed = 0
+    for place in places:
+        query = f"{place.address or place.name}, León, Guanajuato, México"
+        params = urllib.parse.urlencode({'q': query, 'format': 'json', 'limit': '1'})
+        url = f'https://nominatim.openstreetmap.org/search?{params}'
+        req = urllib.request.Request(url, headers={'User-Agent': 'Tacometro/1.0'})
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+            if data:
+                place.latitude = float(data[0]['lat'])
+                place.longitude = float(data[0]['lon'])
+                ok += 1
+            else:
+                failed += 1
+        except Exception:
+            failed += 1
+        time.sleep(1.1)  # Nominatim: máx 1 req/seg
+
+    db.session.commit()
+    msg = f'{ok} taquerías geocodificadas.'
+    if failed:
+        msg += f' {failed} sin resultado (dirección no encontrada).'
+    flash(msg, 'success' if ok else 'warning')
+    return redirect(url_for('admin.index'))
