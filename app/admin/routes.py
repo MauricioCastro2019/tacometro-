@@ -1,7 +1,9 @@
+import csv
+import io
 from flask import render_template, redirect, url_for, flash, abort
 from flask_login import login_required
 from app.admin import admin
-from app.admin.forms import PlaceForm
+from app.admin.forms import PlaceForm, ImportForm
 from app.extensions import db
 from app.models.category import Category
 from app.models.place import Place
@@ -78,3 +80,95 @@ def place_edit(place_id):
             return redirect(url_for('admin.index'))
 
     return render_template('admin/place_form.html', form=form, title='Editar taquería', place=place)
+
+
+def _normalize_header(h):
+    return h.strip().lower().replace('á', 'a').replace('é', 'e').replace('í', 'i').replace('ó', 'o').replace('ú', 'u').replace('/', '').replace(' ', '')
+
+
+def _parse_rows(file_storage):
+    """Devuelve lista de dicts normalizados desde .xlsx o .csv."""
+    filename = file_storage.filename.lower()
+    if filename.endswith('.xlsx'):
+        import openpyxl
+        wb = openpyxl.load_workbook(file_storage, read_only=True, data_only=True)
+        ws = wb.active
+        rows = list(ws.iter_rows(values_only=True))
+        if not rows:
+            return []
+        headers = [_normalize_header(str(c)) if c else '' for c in rows[0]]
+        return [
+            {headers[i]: (str(v).strip() if v is not None else '') for i, v in enumerate(row)}
+            for row in rows[1:]
+        ]
+    else:
+        content = file_storage.read().decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(content))
+        return [
+            {_normalize_header(k): (v.strip() if v else '') for k, v in row.items()}
+            for row in reader
+        ]
+
+
+def _get_or_create_category(name):
+    name = name.strip() or 'General'
+    cat = Category.query.filter_by(name=name).first()
+    if not cat:
+        cat = Category(name=name, slug=slugify(name))
+        db.session.add(cat)
+        db.session.flush()
+    return cat
+
+
+@admin.route('/import', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def import_places():
+    form = ImportForm()
+    if form.validate_on_submit():
+        rows = _parse_rows(form.file.data)
+        created = skipped = errors = 0
+        for row in rows:
+            name = row.get('nombre', '')
+            if not name:
+                continue
+            slug = slugify(name)
+            if Place.query.filter_by(slug=slug).first():
+                skipped += 1
+                continue
+            especialidad = row.get('especialidad', '') or 'General'
+            try:
+                cat = _get_or_create_category(especialidad)
+                direccion = row.get('direccion', '') or row.get('direccion', '')
+                zona = row.get('zonacolonia', '') or row.get('zona', '')
+                horario = row.get('horario', '')
+                description_parts = []
+                if zona:
+                    description_parts.append(f'Zona: {zona}')
+                if horario:
+                    description_parts.append(f'Horario: {horario}')
+                place = Place(
+                    name=name,
+                    slug=slug,
+                    description=' | '.join(description_parts) or None,
+                    address=direccion or None,
+                    city='León',
+                    state='Guanajuato',
+                    category_id=cat.id,
+                    is_active=True,
+                )
+                db.session.add(place)
+                created += 1
+            except Exception:
+                db.session.rollback()
+                errors += 1
+                continue
+        db.session.commit()
+        msg = f'{created} taquerías importadas.'
+        if skipped:
+            msg += f' {skipped} omitidas (ya existían).'
+        if errors:
+            msg += f' {errors} con error.'
+        flash(msg, 'success' if not errors else 'warning')
+        return redirect(url_for('admin.index'))
+    return render_template('admin/import.html', form=form)

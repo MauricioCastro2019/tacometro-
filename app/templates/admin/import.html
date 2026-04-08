@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Importar taquerías · Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{{ url_for('admin.index') }}"
+       class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
+    <h1 class="text-2xl font-bold text-white">Importar taquerías</h1>
+  </div>
+
+  <!-- Instrucciones -->
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-5 mb-6 text-sm text-gray-400 space-y-2">
+    <p class="font-semibold text-gray-200">Formato del archivo</p>
+    <p>Se aceptan archivos <span class="text-orange-400 font-mono">.xlsx</span> y <span class="text-orange-400 font-mono">.csv</span> con las siguientes columnas (el orden no importa):</p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs mt-2 border border-white/10 rounded-xl overflow-hidden">
+        <thead class="bg-dark-600 text-gray-500 uppercase tracking-wider">
+          <tr>
+            <th class="px-4 py-2 text-left">Columna</th>
+            <th class="px-4 py-2 text-left">Descripción</th>
+            <th class="px-4 py-2 text-center">Requerida</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+          <tr><td class="px-4 py-2 font-mono text-orange-300">Nombre</td><td class="px-4 py-2">Nombre de la taquería</td><td class="px-4 py-2 text-center text-green-400">Sí</td></tr>
+          <tr><td class="px-4 py-2 font-mono text-orange-300">Especialidad</td><td class="px-4 py-2">Categoría (Ej: Pastor / Costilla)</td><td class="px-4 py-2 text-center text-gray-500">No</td></tr>
+          <tr><td class="px-4 py-2 font-mono text-orange-300">Dirección</td><td class="px-4 py-2">Dirección física</td><td class="px-4 py-2 text-center text-gray-500">No</td></tr>
+          <tr><td class="px-4 py-2 font-mono text-orange-300">Zona / Colonia</td><td class="px-4 py-2">Zona o colonia</td><td class="px-4 py-2 text-center text-gray-500">No</td></tr>
+          <tr><td class="px-4 py-2 font-mono text-orange-300">Horario</td><td class="px-4 py-2">Horario de atención</td><td class="px-4 py-2 text-center text-gray-500">No</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-gray-600 pt-1">Las taquerías con nombre duplicado serán omitidas. Las categorías nuevas se crean automáticamente.</p>
+  </div>
+
+  <!-- Formulario -->
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-6">
+    <form method="POST" enctype="multipart/form-data" class="space-y-5" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div>
+        {{ form.file.label(class="block text-sm font-medium text-gray-400 mb-2") }}
+        <label class="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-white/15 rounded-xl cursor-pointer hover:border-orange-500/50 transition group">
+          <svg class="w-8 h-8 text-gray-600 group-hover:text-orange-400 transition mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <span class="text-sm text-gray-500 group-hover:text-gray-300 transition" id="file-label">Haz clic o arrastra tu archivo aquí</span>
+          <span class="text-xs text-gray-700 mt-1">.xlsx · .csv</span>
+          {{ form.file(class="hidden", id="file-input", accept=".xlsx,.csv") }}
+        </label>
+        {% for error in form.file.errors %}
+          <p class="text-red-400 text-xs mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
+
+      <div class="flex gap-3 pt-1">
+        {{ form.submit(class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20") }}
+        <a href="{{ url_for('admin.index') }}"
+           class="border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-6 py-2.5 rounded-xl transition">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('file-input');
+  const label = document.getElementById('file-label');
+  input.addEventListener('change', () => {
+    label.textContent = input.files[0] ? input.files[0].name : 'Haz clic o arrastra tu archivo aquí';
+  });
+</script>
+{% endblock %}

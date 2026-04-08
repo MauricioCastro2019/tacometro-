@@ -4,10 +4,16 @@
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-2xl font-bold text-white">Panel de administración</h1>
-  <a href="{{ url_for('admin.place_create') }}"
-     class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
-    + Nueva taquería
-  </a>
+  <div class="flex gap-2">
+    <a href="{{ url_for('admin.import_places') }}"
+       class="border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 text-sm font-semibold px-4 py-2 rounded-xl transition">
+      ↑ Importar CSV / Excel
+    </a>
+    <a href="{{ url_for('admin.place_create') }}"
+       class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
+      + Nueva taquería
+    </a>
+  </div>
 </div>
 
 <div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden">

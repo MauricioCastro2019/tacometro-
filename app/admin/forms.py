@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import StringField, TextAreaField, BooleanField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Length, Optional, URL
 
@@ -17,3 +18,11 @@ class PlaceForm(FlaskForm):
     category_id = SelectField('Categoría', coerce=int, validators=[DataRequired()])
     is_active = BooleanField('Activa', default=True)
     submit = SubmitField('Guardar')
+
+
+class ImportForm(FlaskForm):
+    file = FileField('Archivo (.xlsx o .csv)', validators=[
+        FileRequired(message='Selecciona un archivo.'),
+        FileAllowed(['xlsx', 'csv'], 'Solo se permiten archivos .xlsx o .csv.')
+    ])
+    submit = SubmitField('Importar taquerías')
