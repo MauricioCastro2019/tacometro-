@@ -132,6 +132,11 @@ def import_places():
     form = ImportForm()
     if form.validate_on_submit():
         rows = _parse_rows(form.file.data)
+        if not rows:
+            flash('El archivo está vacío o no se pudo leer.', 'danger')
+            return redirect(url_for('admin.import_places'))
+        # Debug: mostrar columnas detectadas
+        detected_cols = list(rows[0].keys())
         created = skipped = errors = 0
         for row in rows:
             name = row.get('nombre', '')
@@ -174,6 +179,8 @@ def import_places():
             msg += f' {skipped} omitidas (ya existían).'
         if errors:
             msg += f' {errors} con error.'
-        flash(msg, 'success' if not errors else 'warning')
+        if created == 0:
+            msg += f' Columnas detectadas: {detected_cols}.'
+        flash(msg, 'success' if created > 0 else 'warning')
         return redirect(url_for('admin.index'))
     return render_template('admin/import.html', form=form)
