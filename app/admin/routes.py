@@ -4,7 +4,7 @@ import time
 import urllib.request
 import urllib.parse
 import json
-from flask import render_template, redirect, url_for, flash, abort
+from flask import render_template, redirect, url_for, flash, abort, request
 from flask_login import login_required
 from app.admin import admin
 from app.admin.forms import PlaceForm, ImportForm
@@ -12,7 +12,12 @@ from app.extensions import db
 from app.models.category import Category
 from app.models.place import Place
 from app.utils.decorators import admin_required
+from app.utils.image_upload import upload_image
 from app.utils.slugify import slugify
+
+
+def _category_choices():
+    return [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
 
 
 @admin.route('/')
@@ -28,13 +33,20 @@ def index():
 @admin_required
 def place_create():
     form = PlaceForm()
-    form.category_id.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
+    form.category_ids.choices = _category_choices()
 
     if form.validate_on_submit():
         slug = slugify(form.name.data)
         if Place.query.filter_by(slug=slug).first():
             flash('Ya existe una taquería con ese nombre.', 'danger')
         else:
+            # Imagen: archivo tiene prioridad sobre URL
+            image_url = form.image_url.data or None
+            if form.image_file.data and form.image_file.data.filename:
+                uploaded = upload_image(form.image_file.data)
+                if uploaded:
+                    image_url = uploaded
+
             place = Place(
                 name=form.name.data,
                 slug=slug,
@@ -43,10 +55,12 @@ def place_create():
                 city=form.city.data,
                 state=form.state.data,
                 phone=form.phone.data,
-                image_url=form.image_url.data or None,
-                category_id=form.category_id.data,
+                image_url=image_url,
                 is_active=form.is_active.data,
             )
+            place.categories = Category.query.filter(
+                Category.id.in_(form.category_ids.data)
+            ).all()
             db.session.add(place)
             db.session.commit()
             flash(f'Taquería "{place.name}" creada.', 'success')
@@ -61,7 +75,10 @@ def place_create():
 def place_edit(place_id):
     place = db.session.get(Place, place_id) or abort(404)
     form = PlaceForm(obj=place)
-    form.category_id.choices = [(c.id, c.name) for c in Category.query.order_by(Category.name).all()]
+    form.category_ids.choices = _category_choices()
+
+    if request.method == 'GET':
+        form.category_ids.data = [c.id for c in place.categories]
 
     if form.validate_on_submit():
         new_slug = slugify(form.name.data)
@@ -69,6 +86,13 @@ def place_edit(place_id):
         if existing and existing.id != place.id:
             flash('Ya existe una taquería con ese nombre.', 'danger')
         else:
+            # Imagen: archivo tiene prioridad sobre URL
+            image_url = form.image_url.data or None
+            if form.image_file.data and form.image_file.data.filename:
+                uploaded = upload_image(form.image_file.data)
+                if uploaded:
+                    image_url = uploaded
+
             place.name = form.name.data
             place.slug = new_slug
             place.description = form.description.data
@@ -76,9 +100,11 @@ def place_edit(place_id):
             place.city = form.city.data
             place.state = form.state.data
             place.phone = form.phone.data
-            place.image_url = form.image_url.data or None
-            place.category_id = form.category_id.data
+            place.image_url = image_url
             place.is_active = form.is_active.data
+            place.categories = Category.query.filter(
+                Category.id.in_(form.category_ids.data)
+            ).all()
             db.session.commit()
             flash(f'Taquería "{place.name}" actualizada.', 'success')
             return redirect(url_for('admin.index'))
@@ -91,7 +117,6 @@ def _normalize_header(h):
 
 
 def _find_header_row(rows):
-    """Devuelve el índice de la fila que contiene 'nombre' como encabezado real."""
     for i, row in enumerate(rows):
         normalized = [_normalize_header(str(c)) if c else '' for c in row]
         if 'nombre' in normalized:
@@ -100,7 +125,6 @@ def _find_header_row(rows):
 
 
 def _parse_rows(file_storage):
-    """Devuelve lista de dicts normalizados desde .xlsx o .csv."""
     filename = file_storage.filename.lower()
     if filename.endswith('.xlsx'):
         import openpyxl
@@ -154,7 +178,6 @@ def import_places():
         if not rows:
             flash('El archivo está vacío o no se pudo leer.', 'danger')
             return redirect(url_for('admin.import_places'))
-        # Debug: mostrar columnas detectadas
         detected_cols = list(rows[0].keys())
         created = skipped = errors = 0
         for row in rows:
@@ -168,7 +191,7 @@ def import_places():
             especialidad = row.get('especialidad', '') or 'General'
             try:
                 cat = _get_or_create_category(especialidad)
-                direccion = row.get('direccion', '') or row.get('direccion', '')
+                direccion = row.get('direccion', '')
                 zona = row.get('zonacolonia', '') or row.get('zona', '')
                 horario = row.get('horario', '')
                 description_parts = []
@@ -183,9 +206,9 @@ def import_places():
                     address=direccion or None,
                     city='León',
                     state='Guanajuato',
-                    category_id=cat.id,
                     is_active=True,
                 )
+                place.categories = [cat]
                 db.session.add(place)
                 created += 1
             except Exception:
@@ -235,7 +258,7 @@ def geocode_places():
                 failed += 1
         except Exception:
             failed += 1
-        time.sleep(1.1)  # Nominatim: máx 1 req/seg
+        time.sleep(1.1)
 
     db.session.commit()
     msg = f'{ok} taquerías geocodificadas.'

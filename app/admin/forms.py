@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
-from wtforms import StringField, TextAreaField, BooleanField, SelectField, SubmitField
+from wtforms import StringField, TextAreaField, BooleanField, SelectMultipleField, SubmitField
 from wtforms.validators import DataRequired, Length, Optional, URL
 
 
@@ -15,7 +15,15 @@ class PlaceForm(FlaskForm):
     state = StringField('Estado', validators=[DataRequired()], default='Guanajuato')
     phone = StringField('Teléfono', validators=[Optional(), Length(max=20)])
     image_url = StringField('URL de imagen', validators=[Optional(), URL(message='URL no válida.')])
-    category_id = SelectField('Categoría', coerce=int, validators=[DataRequired()])
+    image_file = FileField('Subir imagen', validators=[
+        Optional(),
+        FileAllowed(['jpg', 'jpeg', 'png', 'webp'], 'Solo imágenes JPG, PNG o WebP.')
+    ])
+    category_ids = SelectMultipleField(
+        'Tipos de taco',
+        coerce=int,
+        validators=[DataRequired(message='Selecciona al menos un tipo de taco.')]
+    )
     is_active = BooleanField('Activa', default=True)
     submit = SubmitField('Guardar')
 

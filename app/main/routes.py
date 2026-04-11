@@ -42,7 +42,7 @@ def api_places():
             'id': p.id,
             'name': p.name,
             'address': p.address or '',
-            'category': p.category.name if p.category else '',
+            'category': ', '.join(c.name for c in p.categories) if p.categories else '',
             'avg_score': p.avg_score,
             'review_count': p.review_count,
             'lat': p.latitude,

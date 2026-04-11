@@ -33,22 +33,43 @@
       {% endif %}
     </div>
 
+    {% if place.categories %}
+      <div class="flex flex-wrap gap-1.5 mt-3">
+        {% for cat in place.categories %}
+          <span class="text-xs px-2.5 py-1 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25 font-medium">
+            {{ cat.name }}
+          </span>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     {% if place.description %}
       <p class="text-gray-400 mt-4 leading-relaxed text-sm">{{ place.description }}</p>
     {% endif %}
 
-    <div class="mt-6 flex gap-3 flex-wrap">
+    <!-- CTA de calificación -->
+    <div class="mt-6">
       {% if current_user.is_authenticated %}
         <a href="{{ url_for('reviews.create', place_id=place.id) }}"
-           class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20">
-          Escribir reseña
+           class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20">
+          <span class="text-lg">🌡️</span> Calificar del 1 al 10
         </a>
+        <p class="text-xs text-gray-600 mt-2">Sabor · Carne · Salsa · Tortilla · Precio · Higiene</p>
       {% else %}
         <a href="{{ url_for('auth.login') }}"
-           class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition">
-          Inicia sesión para calificar
+           class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition">
+          <span class="text-lg">🌡️</span> Entra para calificar
+        </a>
+        <p class="text-xs text-gray-600 mt-2">¿Ya fuiste? Califica del 1 al 10 en 6 criterios</p>
+      {% endif %}
+
+      {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
+           class="inline-block mt-3 border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-5 py-2.5 rounded-xl transition">
+          Editar
         </a>
       {% endif %}
+    </div>
       {% if current_user.is_authenticated and current_user.is_admin %}
         <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
            class="border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-5 py-2.5 rounded-xl transition">
@@ -59,9 +80,9 @@
   </div>
 </div>
 
-<!-- Reseñas -->
+<!-- Calificaciones -->
 <h2 class="text-lg font-bold text-gray-300 mb-4">
-  Reseñas
+  Calificaciones
   {% if reviews %}<span class="text-gray-600 font-normal text-sm">({{ reviews|length }})</span>{% endif %}
 </h2>
 
@@ -97,6 +118,11 @@
           {% endfor %}
         </div>
 
+        {% if review.image_url %}
+          <img src="{{ review.image_url }}" alt="Foto de reseña"
+               class="w-full rounded-xl mb-3 max-h-64 object-cover">
+        {% endif %}
+
         {% if review.comment %}
           <p class="text-gray-400 text-sm leading-relaxed">{{ review.comment }}</p>
         {% endif %}
@@ -108,7 +134,8 @@
 {% else %}
   <div class="border border-white/5 rounded-2xl p-10 text-center text-gray-600">
     <p class="text-4xl mb-3">🌮</p>
-    <p>Aún no hay reseñas. ¡Sé el primero en calificar!</p>
+    <p class="font-medium text-gray-500 mb-1">Aún no hay calificaciones.</p>
+    <p class="text-sm">¡Sé el primero en calificar del 1 al 10!</p>
   </div>
 {% endif %}
 {% endblock %}

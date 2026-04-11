@@ -10,7 +10,7 @@
   </div>
 
   <div class="bg-dark-700 border border-white/5 rounded-2xl p-6">
-    <form method="POST" novalidate class="space-y-5">
+    <form method="POST" enctype="multipart/form-data" novalidate class="space-y-5">
       {{ form.hidden_tag() }}
 
       {% macro df(f, full=true) %}
@@ -35,16 +35,79 @@
         {{ df(form.state) }}
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        {{ df(form.phone) }}
-        <div>
-          {{ form.category_id.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
-          {{ form.category_id(class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition") }}
-          {% for error in form.category_id.errors %}<p class="text-red-400 text-xs mt-1">{{ error }}</p>{% endfor %}
+      {{ df(form.phone) }}
+
+      <!-- Tipos de taco (multi-select chips) -->
+      <div>
+        <label class="block text-sm font-medium text-gray-400 mb-2">
+          Tipos de taco
+          <span class="text-gray-600 font-normal ml-1">(selecciona todos los que ofrece)</span>
+        </label>
+        {% if form.category_ids.errors %}
+          <p class="text-red-400 text-xs mb-2">{{ form.category_ids.errors[0] }}</p>
+        {% endif %}
+        <div id="chips-container" class="flex flex-wrap gap-2">
+          {% set selected = form.category_ids.data or [] %}
+          {% for value, label in form.category_ids.choices %}
+            <label class="chip-label cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="category_ids"
+                value="{{ value }}"
+                class="sr-only chip-input"
+                {% if value in selected %}checked{% endif %}
+              >
+              <span class="chip-span inline-block px-3 py-1.5 rounded-full border text-sm font-medium transition-all
+                           {% if value in selected %}bg-orange-500 border-orange-500 text-white{% else %}border-white/15 text-gray-400 hover:border-orange-400 hover:text-orange-300{% endif %}">
+                {{ label }}
+              </span>
+            </label>
+          {% endfor %}
         </div>
       </div>
 
-      {{ df(form.image_url) }}
+      <!-- Imagen -->
+      <div>
+        <label class="block text-sm font-medium text-gray-400 mb-2">Imagen</label>
+
+        <!-- Preview -->
+        <div id="img-preview-wrap" class="{% if not place or not place.image_url %}hidden{% endif %} mb-3">
+          <img id="img-preview"
+               src="{{ place.image_url if place and place.image_url else '' }}"
+               alt="Preview"
+               class="w-full h-48 object-cover rounded-xl">
+          <button type="button" onclick="clearImage()"
+                  class="mt-1.5 text-xs text-gray-600 hover:text-red-400 transition">
+            × Quitar imagen
+          </button>
+        </div>
+
+        <!-- Botón cámara / galería -->
+        <label for="image_file_input"
+               class="flex items-center gap-3 bg-dark-600 border border-white/10 hover:border-orange-500/60 rounded-xl px-4 py-3 cursor-pointer transition mb-2 active:scale-[0.99]">
+          <span class="text-2xl">📷</span>
+          <div>
+            <span class="text-sm font-medium text-gray-300">Tomar foto o elegir imagen</span>
+            <span class="text-xs text-gray-600 block">JPG, PNG o WebP</span>
+          </div>
+        </label>
+        <input type="file" id="image_file_input" name="image_file"
+               accept="image/*"
+               class="hidden"
+               onchange="previewSelected(this)">
+
+        <!-- URL alternativa -->
+        <div class="relative mt-2">
+          {{ form.image_url(
+            id="image_url_input",
+            class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition pr-8",
+            placeholder="O pega una URL de imagen..."
+          ) }}
+        </div>
+        {% for error in form.image_url.errors %}
+          <p class="text-red-400 text-xs mt-1">{{ error }}</p>
+        {% endfor %}
+      </div>
 
       <div class="flex items-center gap-2 pt-1">
         {{ form.is_active(class="rounded bg-dark-600 border-white/20 accent-orange-500") }}
@@ -61,4 +124,50 @@
     </form>
   </div>
 </div>
+
+<script>
+  // Chips: toggle visual state on click
+  document.querySelectorAll('.chip-label').forEach(label => {
+    const input = label.querySelector('.chip-input');
+    const span  = label.querySelector('.chip-span');
+
+    function sync() {
+      if (input.checked) {
+        span.classList.remove('border-white/15', 'text-gray-400', 'hover:border-orange-400', 'hover:text-orange-300');
+        span.classList.add('bg-orange-500', 'border-orange-500', 'text-white');
+      } else {
+        span.classList.remove('bg-orange-500', 'border-orange-500', 'text-white');
+        span.classList.add('border-white/15', 'text-gray-400', 'hover:border-orange-400', 'hover:text-orange-300');
+      }
+    }
+    input.addEventListener('change', sync);
+    sync(); // initialize
+  });
+
+  // Image preview
+  function previewSelected(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('img-preview').src = e.target.result;
+      document.getElementById('img-preview-wrap').classList.remove('hidden');
+      document.getElementById('image_url_input').value = '';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+
+  function clearImage() {
+    document.getElementById('img-preview').src = '';
+    document.getElementById('img-preview-wrap').classList.add('hidden');
+    document.getElementById('image_file_input').value = '';
+    document.getElementById('image_url_input').value = '';
+  }
+
+  // If URL field changes, clear file input
+  document.getElementById('image_url_input').addEventListener('input', function() {
+    if (this.value) {
+      document.getElementById('image_file_input').value = '';
+    }
+  });
+</script>
 {% endblock %}
