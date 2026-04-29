@@ -39,22 +39,6 @@
          class="w-full bg-dark-700 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
 </div>
 
-<!-- Filtros por categoría -->
-{% if categories %}
-<div class="flex flex-wrap gap-2 mb-6" id="cat-filters">
-  <button data-cat=""
-          class="cat-btn active-cat text-xs font-semibold px-3 py-1.5 rounded-full border transition">
-    Todas
-  </button>
-  {% for cat in categories %}
-    <button data-cat="{{ cat.slug }}"
-            class="cat-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition">
-      {% if cat.icon %}{{ cat.icon }} {% endif %}{{ cat.name }}
-    </button>
-  {% endfor %}
-</div>
-{% endif %}
-
 <!-- Contador de resultados -->
 <p id="results-count" class="text-xs text-gray-600 mb-4 hidden">
   <span id="count-num">0</span> taquerías encontradas
@@ -186,64 +170,29 @@ document.querySelectorAll('.fav-card-btn').forEach(btn => {
 });
 
 (function () {
-  const search = document.getElementById('search');
-  const cards  = document.querySelectorAll('.place-card');
-  const noRes  = document.getElementById('no-results');
-  const grid   = document.getElementById('places-grid');
-  const countEl = document.getElementById('count-num');
+  const search    = document.getElementById('search');
+  const cards     = document.querySelectorAll('.place-card');
+  const noRes     = document.getElementById('no-results');
+  const grid      = document.getElementById('places-grid');
+  const countEl   = document.getElementById('count-num');
   const countWrap = document.getElementById('results-count');
-  const catBtns = document.querySelectorAll('.cat-btn');
-
-  let activeCat = '';
-  let query = '';
-
-  // Estilos de botones
-  function styleCatBtns() {
-    catBtns.forEach(btn => {
-      const isActive = btn.dataset.cat === activeCat;
-      btn.className = 'cat-btn text-xs font-semibold px-3 py-1.5 rounded-full border transition ' +
-        (isActive
-          ? 'bg-orange-500 border-orange-500 text-white'
-          : 'bg-transparent border-white/15 text-gray-400 hover:border-orange-500/50 hover:text-orange-300');
-    });
-  }
-
   const pagination = document.getElementById('pagination');
 
-  function filter() {
+  search.addEventListener('input', e => {
+    const query = e.target.value.trim().toLowerCase();
     let visible = 0;
     cards.forEach(card => {
-      const matchesQuery = card.dataset.name.includes(query);
-      const matchesCat = !activeCat || card.dataset.cats.split(' ').includes(activeCat);
-      const show = matchesQuery && matchesCat;
+      const show = card.dataset.name.includes(query);
       card.style.display = show ? '' : 'none';
       if (show) visible++;
     });
-
-    const isFiltered = query || activeCat;
-    countWrap.classList.toggle('hidden', !isFiltered);
-    if (isFiltered) countEl.textContent = visible;
-    if (pagination) pagination.classList.toggle('hidden', !!isFiltered);
-
+    countWrap.classList.toggle('hidden', !query);
+    if (query) countEl.textContent = visible;
+    if (pagination) pagination.classList.toggle('hidden', !!query);
     const allHidden = visible === 0 && cards.length > 0;
     noRes.classList.toggle('hidden', !allHidden);
     if (grid) grid.classList.toggle('hidden', allHidden);
-  }
-
-  search.addEventListener('input', e => {
-    query = e.target.value.trim().toLowerCase();
-    filter();
   });
-
-  catBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      activeCat = btn.dataset.cat;
-      styleCatBtns();
-      filter();
-    });
-  });
-
-  styleCatBtns();
 })();
 </script>
 {% endblock %}
