@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Tacómetro{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Califica y descubre los mejores tacos de León, Guanajuato.{% endblock %}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌮</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -30,7 +32,7 @@
     <div class="max-w-5xl mx-auto px-4 py-2 flex items-center justify-between">
 
       <!-- Logo -->
-      <a href="{{ url_for('main.index') }}" class="flex items-center gap-2">
+      <a href="{{ url_for('main.index') }}" class="flex items-center gap-2 shrink-0">
         <img src="{{ url_for('static', filename='img/logo.png') }}"
              alt="Tacómetro"
              class="h-11 w-auto"
@@ -41,8 +43,23 @@
         </span>
       </a>
 
-      <!-- Nav links -->
-      <div class="flex items-center gap-5 text-sm font-medium">
+      <!-- Búsqueda global (desktop) -->
+      <div class="hidden sm:block relative flex-1 max-w-xs mx-4" id="global-search-wrap">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600 pointer-events-none"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+        </svg>
+        <input id="global-search" type="text" placeholder="Buscar taquería…"
+               autocomplete="off"
+               class="w-full bg-dark-700 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+        <div id="global-results"
+             class="absolute top-full left-0 right-0 mt-1.5 bg-dark-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden hidden z-50">
+        </div>
+      </div>
+
+      <!-- Links desktop -->
+      <div class="hidden sm:flex items-center gap-5 text-sm font-medium">
         <a href="{{ url_for('places.index') }}"
            class="text-gray-400 hover:text-orange-400 transition">Taquerías</a>
         <a href="{{ url_for('main.mapa') }}"
@@ -70,28 +87,176 @@
           </a>
         {% endif %}
       </div>
+
+      <!-- Botón hamburguesa (mobile) -->
+      <button id="nav-toggle" class="sm:hidden text-gray-400 hover:text-white transition p-1.5 rounded-lg"
+              aria-label="Menú">
+        <svg id="nav-icon-open" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        <svg id="nav-icon-close" class="w-6 h-6 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Menú mobile desplegable -->
+    <div id="nav-mobile" class="hidden sm:hidden border-t border-white/5 bg-dark-800">
+      <div class="max-w-5xl mx-auto px-4 py-3 flex flex-col gap-1 text-sm font-medium">
+        <a href="{{ url_for('places.index') }}"
+           class="text-gray-300 hover:text-orange-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition">
+          🌮 Taquerías
+        </a>
+        <a href="{{ url_for('main.mapa') }}"
+           class="text-gray-300 hover:text-orange-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition">
+          📍 Mapa
+        </a>
+        <a href="{{ url_for('main.suggest') }}"
+           class="text-gray-300 hover:text-orange-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition">
+          ➕ Sugerir taquería
+        </a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('main.profile') }}"
+             class="text-gray-300 hover:text-orange-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition">
+            👤 {{ current_user.username }}
+          </a>
+          {% if current_user.is_admin %}
+            <a href="{{ url_for('admin.index') }}"
+               class="text-gray-300 hover:text-orange-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition">
+              ⚙️ Admin
+            </a>
+          {% endif %}
+          <a href="{{ url_for('auth.logout') }}"
+             class="text-red-400/80 hover:text-red-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition mt-1">
+            Cerrar sesión
+          </a>
+        {% else %}
+          <div class="flex gap-2 pt-1">
+            <a href="{{ url_for('auth.login') }}"
+               class="flex-1 text-center border border-white/20 text-gray-300 px-4 py-2 rounded-xl transition hover:border-orange-500 hover:text-orange-400">
+              Entrar
+            </a>
+            <a href="{{ url_for('auth.register') }}"
+               class="flex-1 text-center bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl font-semibold transition">
+              Registrarme
+            </a>
+          </div>
+        {% endif %}
+      </div>
     </div>
   </nav>
 
-  <!-- Flash messages -->
+  <script>
+    (function () {
+      const btn   = document.getElementById('nav-toggle');
+      const menu  = document.getElementById('nav-mobile');
+      const open  = document.getElementById('nav-icon-open');
+      const close = document.getElementById('nav-icon-close');
+      btn.addEventListener('click', () => {
+        const isOpen = !menu.classList.contains('hidden');
+        menu.classList.toggle('hidden', isOpen);
+        open.classList.toggle('hidden', !isOpen);
+        close.classList.toggle('hidden', isOpen);
+      });
+    })();
+  </script>
+
+  <!-- Toasts -->
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="max-w-5xl mx-auto px-4 mt-4 w-full space-y-2">
+      <div id="toast-container"
+           class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none"
+           style="max-width: min(380px, calc(100vw - 2.5rem))">
         {% for category, message in messages %}
-          {% set colors = {
-            'success': 'bg-green-900/50 border-green-600 text-green-300',
-            'danger':  'bg-red-900/50 border-red-600 text-red-300',
-            'warning': 'bg-yellow-900/50 border-yellow-600 text-yellow-300',
-            'info':    'bg-blue-900/50 border-blue-600 text-blue-300'
+          {% set cfg = {
+            'success': ('border-green-500/50 text-green-300',  'bg-green-500'),
+            'danger':  ('border-red-500/50 text-red-300',      'bg-red-500'),
+            'warning': ('border-yellow-500/50 text-yellow-300','bg-yellow-500'),
+            'info':    ('border-blue-500/50 text-blue-300',    'bg-blue-500'),
           } %}
-          <div class="border px-4 py-3 rounded-lg text-sm
-               {{ colors.get(category, 'bg-gray-800 border-gray-600 text-gray-300') }}">
-            {{ message }}
+          {% set style, bar = cfg.get(category, ('border-white/20 text-gray-300', 'bg-gray-500')) %}
+          <div class="toast pointer-events-auto bg-dark-800 border {{ style }}
+                      border rounded-2xl shadow-2xl overflow-hidden
+                      translate-y-4 opacity-0 transition-all duration-300">
+            <div class="{{ bar }} h-0.5 w-full"></div>
+            <div class="flex items-start gap-3 px-4 py-3">
+              <p class="text-sm flex-1 leading-snug">{{ message }}</p>
+              <button onclick="this.closest('.toast').remove()"
+                      class="text-gray-600 hover:text-gray-300 transition shrink-0 mt-0.5 text-lg leading-none">×</button>
+            </div>
           </div>
         {% endfor %}
       </div>
+      <script>
+        (function () {
+          const toasts = document.querySelectorAll('.toast');
+          toasts.forEach((t, i) => {
+            setTimeout(() => {
+              t.classList.remove('translate-y-4', 'opacity-0');
+              setTimeout(() => {
+                t.classList.add('opacity-0', 'translate-y-4');
+                setTimeout(() => t.remove(), 300);
+              }, 4000);
+            }, i * 120);
+          });
+        })();
+      </script>
     {% endif %}
   {% endwith %}
+
+  <script>
+  (function () {
+    const input   = document.getElementById('global-search');
+    const results = document.getElementById('global-results');
+    if (!input) return;
+
+    let allPlaces = null;
+    let debounce;
+
+    async function loadPlaces() {
+      if (allPlaces) return;
+      const r = await fetch('/api/places');
+      allPlaces = await r.json();
+    }
+
+    input.addEventListener('focus', loadPlaces);
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(async () => {
+        const q = input.value.trim().toLowerCase();
+        if (!q) { results.classList.add('hidden'); return; }
+        await loadPlaces();
+        const hits = allPlaces
+          .filter(p => p.name.toLowerCase().includes(q))
+          .slice(0, 6);
+        if (!hits.length) {
+          results.innerHTML = '<p class="text-gray-600 text-sm px-4 py-3">Sin resultados</p>';
+        } else {
+          results.innerHTML = hits.map(p => `
+            <a href="${p.url}"
+               class="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-dark-700 transition">
+              <span class="text-sm text-gray-200 truncate">${p.name}</span>
+              ${p.avg_score
+                ? `<span class="text-orange-500 font-black text-sm shrink-0">${p.avg_score}</span>`
+                : `<span class="text-gray-700 text-xs shrink-0">Sin reseñas</span>`}
+            </a>`).join('');
+        }
+        results.classList.remove('hidden');
+      }, 160);
+    });
+
+    document.addEventListener('click', e => {
+      if (!document.getElementById('global-search-wrap')?.contains(e.target)) {
+        results.classList.add('hidden');
+      }
+    });
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { results.classList.add('hidden'); input.blur(); }
+    });
+  })();
+  </script>
 
   <!-- Contenido -->
   <main class="flex-1 max-w-5xl mx-auto px-4 py-8 w-full">

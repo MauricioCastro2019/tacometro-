@@ -54,6 +54,11 @@ def create_app(config_name=None):
         from flask import render_template
         return render_template('errors/403.html'), 403
 
+    @app.errorhandler(429)
+    def too_many_requests(e):
+        from flask import render_template
+        return render_template('errors/429.html'), 429
+
     return app
 
 

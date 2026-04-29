@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Categorías · Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div class="flex items-center gap-3">
+    <a href="{{ url_for('admin.index') }}"
+       class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
+    <h1 class="text-2xl font-bold text-white">Categorías</h1>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+  <!-- Crear nueva -->
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+    <h2 class="text-sm font-bold text-gray-300 mb-4 uppercase tracking-wider">Nueva categoría</h2>
+    <form method="POST" action="{{ url_for('admin.category_create') }}" class="space-y-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Nombre</label>
+        <input type="text" name="name" required maxlength="64"
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+               placeholder="Ej. Tacos de canasta">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Ícono (emoji, opcional)</label>
+        <input type="text" name="icon" maxlength="8"
+               class="w-32 bg-dark-600 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+               placeholder="🌮">
+      </div>
+      <button type="submit"
+              class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2 rounded-xl transition text-sm">
+        Crear categoría
+      </button>
+    </form>
+  </div>
+
+  <!-- Lista -->
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+    <h2 class="text-sm font-bold text-gray-300 mb-4 uppercase tracking-wider">
+      Categorías existentes
+      <span class="text-gray-600 font-normal normal-case">({{ categories|length }})</span>
+    </h2>
+    {% if categories %}
+      <div class="space-y-2" id="cat-list">
+        {% for cat in categories %}
+          <div class="flex items-center gap-3 group">
+            <!-- Modo visualización -->
+            <div class="flex-1 flex items-center gap-2 bg-dark-600 rounded-xl px-3 py-2 cat-view-{{ cat.id }}">
+              {% if cat.icon %}<span>{{ cat.icon }}</span>{% endif %}
+              <span class="text-sm text-gray-200 font-medium">{{ cat.name }}</span>
+              <span class="text-xs text-gray-600 ml-auto">{{ cat.places|length }} taquerías</span>
+            </div>
+
+            <!-- Modo edición (oculto por defecto) -->
+            <form method="POST" action="{{ url_for('admin.category_edit', cat_id=cat.id) }}"
+                  class="flex-1 hidden cat-edit-{{ cat.id }} items-center gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="text" name="icon" value="{{ cat.icon or '' }}" maxlength="8"
+                     class="w-10 bg-dark-500 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500">
+              <input type="text" name="name" value="{{ cat.name }}" required maxlength="64"
+                     class="flex-1 bg-dark-500 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500">
+              <button type="submit"
+                      class="text-green-400 hover:text-green-300 text-xs font-bold shrink-0">Guardar</button>
+              <button type="button" onclick="cancelEdit({{ cat.id }})"
+                      class="text-gray-600 hover:text-gray-400 text-xs shrink-0">✕</button>
+            </form>
+
+            <!-- Acciones -->
+            <div class="cat-view-{{ cat.id }} flex gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
+              <button onclick="startEdit({{ cat.id }})"
+                      class="text-gray-600 hover:text-orange-400 transition p-1 text-xs">✏️</button>
+              <form method="POST" action="{{ url_for('admin.category_delete', cat_id=cat.id) }}"
+                    onsubmit="return confirm('¿Eliminar la categoría {{ cat.name }}? Los lugares no serán eliminados.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="text-gray-600 hover:text-red-400 transition p-1 text-xs">🗑️</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-gray-600 text-sm text-center py-8">Sin categorías todavía.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function startEdit(id) {
+    document.querySelectorAll('.cat-view-' + id).forEach(el => el.classList.add('hidden'));
+    const form = document.querySelector('.cat-edit-' + id);
+    form.classList.remove('hidden');
+    form.classList.add('flex');
+    form.querySelector('input[name=name]').focus();
+  }
+  function cancelEdit(id) {
+    document.querySelectorAll('.cat-view-' + id).forEach(el => el.classList.remove('hidden'));
+    const form = document.querySelector('.cat-edit-' + id);
+    form.classList.add('hidden');
+    form.classList.remove('flex');
+  }
+</script>
+{% endblock %}

@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 {% block title %}{{ place.name }} · Tacómetro{% endblock %}
+{% block meta_description %}{{ place.name }} en León, Guanajuato{% if place.avg_score %} · Score {{ place.avg_score }}/10{% endif %}{% if place.address %} · {{ place.address }}{% endif %} — Tacómetro{% endblock %}
 
 {% block content %}
 
 <!-- Header del lugar -->
 <div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden mb-6">
   {% if place.image_url %}
-    <img src="{{ place.image_url }}" alt="{{ place.name }}" class="w-full h-56 object-cover">
+    <img src="{{ place.image_url }}" alt="{{ place.name }}" loading="eager" class="w-full h-56 object-cover">
   {% else %}
     <div class="w-full h-36 bg-dark-600 flex items-center justify-center text-6xl">🌮</div>
   {% endif %}
@@ -47,38 +48,182 @@
       <p class="text-gray-400 mt-4 leading-relaxed text-sm">{{ place.description }}</p>
     {% endif %}
 
-    <!-- CTA de calificación -->
-    <div class="mt-6">
+    <!-- Acciones -->
+    <div class="mt-6 flex flex-wrap gap-3 items-center">
       {% if current_user.is_authenticated %}
-        <a href="{{ url_for('reviews.create', place_id=place.id) }}"
-           class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20">
-          <span class="text-lg">🌡️</span> Calificar del 1 al 10
-        </a>
-        <p class="text-xs text-gray-600 mt-2">Sabor · Carne · Salsa · Tortilla · Precio · Higiene</p>
+        {% if user_review %}
+          <span class="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 text-green-400 font-semibold px-5 py-2.5 rounded-xl text-sm">
+            ✓ Tu score · {{ user_review.overall_score }}
+          </span>
+          <a href="{{ url_for('reviews.edit', review_id=user_review.id) }}"
+             class="inline-flex items-center gap-1.5 border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 font-semibold px-4 py-2.5 rounded-xl transition text-sm">
+            ✏️ Editar reseña
+          </a>
+        {% else %}
+          <a href="{{ url_for('reviews.create', place_id=place.id) }}"
+             class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20">
+            🌡️ Calificar del 1 al 10
+          </a>
+        {% endif %}
+
+        <!-- Botón favorito -->
+        <button id="fav-btn"
+                data-place-id="{{ place.id }}"
+                data-faved="{{ 'true' if is_fav else 'false' }}"
+                class="inline-flex items-center gap-2 border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 font-semibold px-4 py-2.5 rounded-xl transition">
+          <span id="fav-icon">{{ '❤️' if is_fav else '🤍' }}</span>
+          <span id="fav-label">{{ 'Guardado' if is_fav else 'Guardar' }}</span>
+        </button>
+
+        {% if current_user.is_admin %}
+          <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
+             class="border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-5 py-2.5 rounded-xl transition">
+            Editar
+          </a>
+        {% endif %}
       {% else %}
         <a href="{{ url_for('auth.login') }}"
            class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition">
-          <span class="text-lg">🌡️</span> Entra para calificar
+          🌡️ Entra para calificar
         </a>
-        <p class="text-xs text-gray-600 mt-2">¿Ya fuiste? Califica del 1 al 10 en 6 criterios</p>
+        <p class="text-xs text-gray-600 mt-0">¿Ya fuiste? Califica del 1 al 10 en 6 criterios</p>
       {% endif %}
 
-      {% if current_user.is_authenticated and current_user.is_admin %}
-        <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
-           class="inline-block mt-3 border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-5 py-2.5 rounded-xl transition">
-          Editar
-        </a>
-      {% endif %}
-    </div>
-      {% if current_user.is_authenticated and current_user.is_admin %}
-        <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
-           class="border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-5 py-2.5 rounded-xl transition">
-          Editar
-        </a>
-      {% endif %}
+      <!-- Botón compartir -->
+      <button id="share-btn"
+              class="inline-flex items-center gap-2 border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 font-semibold px-4 py-2.5 rounded-xl transition ml-auto">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+        </svg>
+        <span id="share-label">Compartir</span>
+      </button>
     </div>
   </div>
 </div>
+
+{% if radar %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const labels = {{ radar.keys() | list | tojson }};
+  const data   = {{ radar.values() | list | tojson }};
+  new Chart(document.getElementById('radar-chart'), {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: 'rgba(249,115,22,0.15)',
+        borderColor: '#f97316',
+        borderWidth: 2,
+        pointBackgroundColor: '#f97316',
+        pointRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          min: 0, max: 10,
+          ticks: { stepSize: 2, color: '#6b7280', font: { size: 10 }, backdropColor: 'transparent' },
+          grid:  { color: 'rgba(255,255,255,0.06)' },
+          angleLines: { color: 'rgba(255,255,255,0.06)' },
+          pointLabels: { color: '#9ca3af', font: { size: 11 } },
+        }
+      },
+      plugins: { legend: { display: false } },
+    }
+  });
+})();
+</script>
+{% endif %}
+
+{% if place.latitude and place.longitude %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+  const lat = {{ place.latitude }}, lng = {{ place.longitude }};
+  const map = L.map('mini-map', { zoomControl: false, scrollWheelZoom: false })
+               .setView([lat, lng], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 19
+  }).addTo(map);
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">🌮</div>`,
+    iconSize: [32, 32], iconAnchor: [16, 28],
+  });
+  L.marker([lat, lng], { icon })
+   .addTo(map)
+   .bindPopup('<b>{{ place.name }}</b>{% if place.address %}<br><small>{{ place.address }}</small>{% endif %}')
+   .openPopup();
+  document.querySelector('#mini-map a.leaflet-control-attribution').style.fontSize = '9px';
+})();
+</script>
+{% endif %}
+
+<script>
+// Compartir
+(function () {
+  const btn = document.getElementById('share-btn');
+  if (!btn) return;
+  const title = '{{ place.name }} · Tacómetro';
+  const url   = window.location.href;
+  btn.addEventListener('click', async () => {
+    if (navigator.share) {
+      await navigator.share({ title, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => {});
+      document.getElementById('share-label').textContent = '¡Copiado!';
+      setTimeout(() => document.getElementById('share-label').textContent = 'Compartir', 2000);
+    }
+  });
+})();
+
+// Favorito
+(function () {
+  const btn = document.getElementById('fav-btn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const placeId = btn.dataset.placeId;
+    btn.disabled = true;
+    try {
+      const res = await fetch(`/places/${placeId}/favorite`, { method: 'POST' });
+      const data = await res.json();
+      document.getElementById('fav-icon').textContent  = data.favorited ? '❤️' : '🤍';
+      document.getElementById('fav-label').textContent = data.favorited ? 'Guardado' : 'Guardar';
+      btn.dataset.faved = data.favorited ? 'true' : 'false';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+
+<!-- Radar chart + mini-mapa -->
+{% if radar or (place.latitude and place.longitude) %}
+  <div class="grid {% if radar and place.latitude %}grid-cols-1 sm:grid-cols-2{% else %}grid-cols-1{% endif %} gap-4 mb-6">
+
+    {% if radar %}
+      <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+        <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Perfil de sabor</p>
+        <div class="relative" style="height:220px">
+          <canvas id="radar-chart"></canvas>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if place.latitude and place.longitude %}
+      <div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden" style="min-height:220px">
+        <div id="mini-map" class="w-full h-full" style="min-height:220px"></div>
+      </div>
+    {% endif %}
+
+  </div>
+{% endif %}
 
 <!-- Calificaciones -->
 <h2 class="text-lg font-bold text-gray-300 mb-4">
@@ -100,8 +245,8 @@
           <span class="text-orange-500 font-black text-2xl">{{ review.overall_score }}</span>
         </div>
 
-        <!-- Criterios -->
-        <div class="grid grid-cols-3 gap-2 text-xs text-gray-500 mb-4 bg-dark-600 rounded-xl p-3">
+        <!-- Criterios con barras -->
+        <div class="space-y-2 mb-4 bg-dark-600 rounded-xl p-3">
           {% set criterios = [
             ('Sabor', review.taste_score),
             ('Carne', review.meat_score),
@@ -111,15 +256,20 @@
             ('Higiene', review.hygiene_score),
           ] %}
           {% for label, score in criterios %}
-            <div class="flex justify-between px-1">
-              <span>{{ label }}</span>
-              <strong class="text-gray-300">{{ score }}</strong>
+            {% set pct = (score / 10 * 100) | int %}
+            {% set color = 'bg-green-500' if score >= 8 else ('bg-orange-400' if score >= 5 else 'bg-red-500') %}
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-gray-500 w-14 shrink-0">{{ label }}</span>
+              <div class="flex-1 bg-dark-500 rounded-full h-1.5 overflow-hidden">
+                <div class="{{ color }} h-full rounded-full transition-all" style="width: {{ pct }}%"></div>
+              </div>
+              <strong class="text-gray-300 w-6 text-right tabular-nums">{{ score }}</strong>
             </div>
           {% endfor %}
         </div>
 
         {% if review.image_url %}
-          <img src="{{ review.image_url }}" alt="Foto de reseña"
+          <img src="{{ review.image_url }}" alt="Foto de reseña" loading="lazy"
                class="w-full rounded-xl mb-3 max-h-64 object-cover">
         {% endif %}
 
@@ -138,4 +288,33 @@
     <p class="text-sm">¡Sé el primero en calificar del 1 al 10!</p>
   </div>
 {% endif %}
+
+<!-- Taquerías similares -->
+{% if similar %}
+  <div class="mt-10">
+    <h2 class="text-lg font-bold text-gray-300 mb-4">También te puede gustar</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {% for p in similar %}
+        <a href="{{ url_for('places.detail', slug=p.slug) }}"
+           class="bg-dark-700 border border-white/5 hover:border-orange-500/40 rounded-2xl overflow-hidden flex gap-3 items-center transition group p-3">
+          {% if p.image_url %}
+            <img src="{{ p.image_url }}" alt="{{ p.name }}" loading="lazy"
+                 class="w-16 h-16 object-cover rounded-xl shrink-0">
+          {% else %}
+            <div class="w-16 h-16 bg-dark-600 rounded-xl flex items-center justify-center text-2xl shrink-0">🌮</div>
+          {% endif %}
+          <div class="min-w-0">
+            <p class="font-semibold text-sm text-gray-100 truncate group-hover:text-orange-400 transition">{{ p.name }}</p>
+            {% if p.avg_score %}
+              <p class="text-orange-500 font-black text-lg">{{ p.avg_score }}</p>
+            {% else %}
+              <p class="text-gray-600 text-xs italic">Sin reseñas</p>
+            {% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
 {% endblock %}

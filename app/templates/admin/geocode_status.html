@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Geocodificando · Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto text-center">
+  <div class="flex items-center gap-3 mb-8 justify-center">
+    <a href="{{ url_for('admin.index') }}"
+       class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
+    <h1 class="text-2xl font-bold text-white">Geocodificando taquerías</h1>
+  </div>
+
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-8 space-y-6">
+    <div id="status-icon" class="text-5xl">📍</div>
+
+    <div>
+      <p id="status-text" class="text-gray-300 font-semibold text-lg mb-1">Procesando…</p>
+      <p id="status-sub" class="text-gray-600 text-sm"></p>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div class="bg-dark-500 rounded-full h-3 overflow-hidden">
+      <div id="progress-bar"
+           class="bg-orange-500 h-full rounded-full transition-all duration-500"
+           style="width: 0%"></div>
+    </div>
+
+    <div class="flex justify-center gap-8 text-sm">
+      <div class="text-center">
+        <p id="num-ok" class="text-2xl font-black text-green-500">0</p>
+        <p class="text-gray-600 text-xs">Geocodificadas</p>
+      </div>
+      <div class="text-center">
+        <p id="num-failed" class="text-2xl font-black text-gray-600">0</p>
+        <p class="text-gray-600 text-xs">Sin resultado</p>
+      </div>
+      <div class="text-center">
+        <p id="num-total" class="text-2xl font-black text-gray-400">{{ status.total }}</p>
+        <p class="text-gray-600 text-xs">Total</p>
+      </div>
+    </div>
+
+    <a id="btn-done" href="{{ url_for('admin.index') }}"
+       class="hidden w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition block text-center">
+      Ver admin →
+    </a>
+  </div>
+</div>
+
+<script>
+(function () {
+  const url = '{{ url_for("admin.geocode_status_json", task_id=task_id) }}';
+
+  function poll() {
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        const processed = data.ok + data.failed;
+        const pct = data.total ? Math.round(processed / data.total * 100) : 0;
+
+        document.getElementById('num-ok').textContent     = data.ok;
+        document.getElementById('num-failed').textContent = data.failed;
+        document.getElementById('num-total').textContent  = data.total;
+        document.getElementById('progress-bar').style.width = pct + '%';
+
+        if (data.done) {
+          document.getElementById('status-icon').textContent = data.ok > 0 ? '✅' : '⚠️';
+          document.getElementById('status-text').textContent = `¡Listo! ${data.ok} geocodificadas`;
+          document.getElementById('status-sub').textContent  =
+            data.failed ? `${data.failed} sin resultado (dirección no encontrada)` : '';
+          document.getElementById('btn-done').classList.remove('hidden');
+        } else {
+          document.getElementById('status-sub').textContent =
+            `${processed} de ${data.total} procesadas`;
+          setTimeout(poll, 2000);
+        }
+      })
+      .catch(() => setTimeout(poll, 3000));
+  }
+
+  poll();
+})();
+</script>
+{% endblock %}

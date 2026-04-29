@@ -4,7 +4,7 @@ import time
 import urllib.request
 import urllib.parse
 import json
-from flask import render_template, redirect, url_for, flash, abort, request
+from flask import render_template, redirect, url_for, flash, abort, request, jsonify
 from flask_login import login_required
 from app.admin import admin
 from app.admin.forms import PlaceForm, ImportForm
@@ -110,6 +110,116 @@ def place_edit(place_id):
             return redirect(url_for('admin.index'))
 
     return render_template('admin/place_form.html', form=form, title='Editar taquería', place=place)
+
+
+@admin.route('/places/<int:place_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def place_delete(place_id):
+    place = db.session.get(Place, place_id) or abort(404)
+    name = place.name
+    db.session.delete(place)
+    db.session.commit()
+    flash(f'Taquería "{name}" eliminada.', 'success')
+    return redirect(url_for('admin.index'))
+
+
+@admin.route('/reviews')
+@login_required
+@admin_required
+def reviews_index():
+    from app.models.review import Review
+    reviews = (
+        Review.query
+        .order_by(Review.created_at.desc())
+        .limit(200)
+        .all()
+    )
+    return render_template('admin/reviews.html', reviews=reviews)
+
+
+@admin.route('/reviews/<int:review_id>/toggle', methods=['POST'])
+@login_required
+@admin_required
+def review_toggle(review_id):
+    from app.models.review import Review
+    review = db.session.get(Review, review_id) or abort(404)
+    review.is_visible = not review.is_visible
+    db.session.commit()
+    flash(f'Reseña {"visible" if review.is_visible else "oculta"}.', 'success')
+    return redirect(url_for('admin.reviews_index'))
+
+
+@admin.route('/reviews/<int:review_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def review_delete(review_id):
+    from app.models.review import Review
+    review = db.session.get(Review, review_id) or abort(404)
+    db.session.delete(review)
+    db.session.commit()
+    flash('Reseña eliminada.', 'success')
+    return redirect(url_for('admin.reviews_index'))
+
+
+@admin.route('/categories')
+@login_required
+@admin_required
+def categories_index():
+    cats = Category.query.order_by(Category.name).all()
+    return render_template('admin/categories.html', categories=cats)
+
+
+@admin.route('/categories/new', methods=['POST'])
+@login_required
+@admin_required
+def category_create():
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('El nombre es obligatorio.', 'danger')
+        return redirect(url_for('admin.categories_index'))
+    if Category.query.filter_by(name=name).first():
+        flash('Ya existe esa categoría.', 'warning')
+        return redirect(url_for('admin.categories_index'))
+    cat = Category(name=name, slug=slugify(name),
+                   icon=request.form.get('icon', '').strip() or None)
+    db.session.add(cat)
+    db.session.commit()
+    flash(f'Categoría "{name}" creada.', 'success')
+    return redirect(url_for('admin.categories_index'))
+
+
+@admin.route('/categories/<int:cat_id>/edit', methods=['POST'])
+@login_required
+@admin_required
+def category_edit(cat_id):
+    cat = db.session.get(Category, cat_id) or abort(404)
+    name = request.form.get('name', '').strip()
+    if not name:
+        flash('El nombre es obligatorio.', 'danger')
+        return redirect(url_for('admin.categories_index'))
+    conflict = Category.query.filter_by(name=name).first()
+    if conflict and conflict.id != cat.id:
+        flash('Ya existe esa categoría.', 'warning')
+        return redirect(url_for('admin.categories_index'))
+    cat.name = name
+    cat.slug = slugify(name)
+    cat.icon = request.form.get('icon', '').strip() or None
+    db.session.commit()
+    flash(f'Categoría "{name}" actualizada.', 'success')
+    return redirect(url_for('admin.categories_index'))
+
+
+@admin.route('/categories/<int:cat_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def category_delete(cat_id):
+    cat = db.session.get(Category, cat_id) or abort(404)
+    name = cat.name
+    db.session.delete(cat)
+    db.session.commit()
+    flash(f'Categoría "{name}" eliminada.', 'success')
+    return redirect(url_for('admin.categories_index'))
 
 
 def _normalize_header(h):
@@ -228,41 +338,121 @@ def import_places():
     return render_template('admin/import.html', form=form)
 
 
+_geocode_status = {}  # task_id → dict
+
+
 @admin.route('/geocode', methods=['POST'])
 @login_required
 @admin_required
 def geocode_places():
-    places = Place.query.filter(
+    import threading
+
+    pending = Place.query.filter(
         Place.is_active == True,
         (Place.latitude == None) | (Place.longitude == None)
     ).all()
 
-    if not places:
+    if not pending:
         flash('Todas las taquerías ya tienen coordenadas.', 'info')
         return redirect(url_for('admin.index'))
 
-    ok = failed = 0
-    for place in places:
-        query = f"{place.address or place.name}, León, Guanajuato, México"
-        params = urllib.parse.urlencode({'q': query, 'format': 'json', 'limit': '1'})
-        url = f'https://nominatim.openstreetmap.org/search?{params}'
-        req = urllib.request.Request(url, headers={'User-Agent': 'Tacometro/1.0'})
-        try:
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                data = json.loads(resp.read())
-            if data:
-                place.latitude = float(data[0]['lat'])
-                place.longitude = float(data[0]['lon'])
-                ok += 1
-            else:
-                failed += 1
-        except Exception:
-            failed += 1
-        time.sleep(1.1)
+    task_id = str(int(time.time()))
+    _geocode_status[task_id] = {'done': False, 'ok': 0, 'failed': 0, 'total': len(pending)}
+    place_ids = [p.id for p in pending]
 
+    def _run(app, ids, tid):
+        with app.app_context():
+            status = _geocode_status[tid]
+            for pid in ids:
+                p = db.session.get(Place, pid)
+                if not p:
+                    continue
+                q = f"{p.address or p.name}, León, Guanajuato, México"
+                params = urllib.parse.urlencode({'q': q, 'format': 'json', 'limit': '1'})
+                url = f'https://nominatim.openstreetmap.org/search?{params}'
+                req = urllib.request.Request(url, headers={'User-Agent': 'Tacometro/1.0'})
+                try:
+                    with urllib.request.urlopen(req, timeout=10) as resp:
+                        data = json.loads(resp.read())
+                    if data:
+                        p.latitude  = float(data[0]['lat'])
+                        p.longitude = float(data[0]['lon'])
+                        db.session.commit()
+                        status['ok'] += 1
+                    else:
+                        status['failed'] += 1
+                except Exception:
+                    status['failed'] += 1
+                time.sleep(1.1)
+            status['done'] = True
+
+    from flask import current_app
+    t = threading.Thread(target=_run, args=(current_app._get_current_object(), place_ids, task_id),
+                         daemon=True)
+    t.start()
+
+    flash(f'Geocodificando {len(pending)} taquerías en segundo plano. '
+          f'Puedes seguir el progreso con el botón "Estado".', 'info')
+    return redirect(url_for('admin.geocode_status_page', task_id=task_id))
+
+
+@admin.route('/geocode/status/<task_id>')
+@login_required
+@admin_required
+def geocode_status_page(task_id):
+    status = _geocode_status.get(task_id)
+    if not status:
+        flash('Tarea no encontrada.', 'warning')
+        return redirect(url_for('admin.index'))
+    return render_template('admin/geocode_status.html', status=status, task_id=task_id)
+
+
+@admin.route('/suggestions')
+@login_required
+@admin_required
+def suggestions_index():
+    from app.models.suggestion import Suggestion
+    pending  = Suggestion.query.filter_by(status='pending').order_by(Suggestion.created_at.desc()).all()
+    resolved = Suggestion.query.filter(Suggestion.status != 'pending').order_by(Suggestion.created_at.desc()).limit(30).all()
+    return render_template('admin/suggestions.html', pending=pending, resolved=resolved)
+
+
+@admin.route('/suggestions/<int:sug_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def suggestion_approve(sug_id):
+    from app.models.suggestion import Suggestion
+    sug = db.session.get(Suggestion, sug_id) or abort(404)
+    sug.status = 'approved'
+    # Pre-crear la taquería en borrador (inactiva para que el admin la complete)
+    existing = Place.query.filter_by(slug=slugify(sug.name)).first()
+    if not existing:
+        place = Place(name=sug.name, slug=slugify(sug.name),
+                      address=sug.address, city='León', state='Guanajuato', is_active=False)
+        db.session.add(place)
+        db.session.commit()
+        flash(f'Sugerencia aprobada. Taquería "{sug.name}" creada en borrador — complétala antes de publicar.', 'success')
+        return redirect(url_for('admin.place_edit', place_id=place.id))
     db.session.commit()
-    msg = f'{ok} taquerías geocodificadas.'
-    if failed:
-        msg += f' {failed} sin resultado (dirección no encontrada).'
-    flash(msg, 'success' if ok else 'warning')
-    return redirect(url_for('admin.index'))
+    flash('Sugerencia aprobada (la taquería ya existía).', 'info')
+    return redirect(url_for('admin.suggestions_index'))
+
+
+@admin.route('/suggestions/<int:sug_id>/reject', methods=['POST'])
+@login_required
+@admin_required
+def suggestion_reject(sug_id):
+    from app.models.suggestion import Suggestion
+    sug = db.session.get(Suggestion, sug_id) or abort(404)
+    sug.status = 'rejected'
+    db.session.commit()
+    flash('Sugerencia rechazada.', 'info')
+    return redirect(url_for('admin.suggestions_index'))
+
+
+@admin.route('/geocode/status/<task_id>/json')
+@login_required
+@admin_required
+def geocode_status_json(task_id):
+    status = _geocode_status.get(task_id, {})
+    return jsonify(status)

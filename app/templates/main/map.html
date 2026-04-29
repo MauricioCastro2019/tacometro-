@@ -215,10 +215,7 @@ function hideStatus() {
   document.getElementById('map-status').classList.add('hidden');
 }
 
-// Render inicial (sin ubicación)
-fetch('/api/places').then(r => r.json()).then(places => {
-  const withCoords = places.filter(p => p.lat && p.lng);
-  renderSidebar(withCoords);
-});
+// Render inicial del sidebar (reutiliza allPlaces cargado arriba)
+setTimeout(() => renderSidebar(allPlaces), 0);
 </script>
 {% endblock %}

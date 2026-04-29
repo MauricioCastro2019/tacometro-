@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Reseñas · Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div class="flex items-center gap-3">
+    <a href="{{ url_for('admin.index') }}"
+       class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
+    <h1 class="text-2xl font-bold text-white">Reseñas</h1>
+  </div>
+  <span class="text-gray-600 text-sm">{{ reviews|length }} en total</span>
+</div>
+
+{% if reviews %}
+  <div class="space-y-3">
+    {% for review in reviews %}
+      <div class="bg-dark-700 border {% if not review.is_visible %}border-red-500/20 opacity-60{% else %}border-white/5{% endif %} rounded-2xl p-4">
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="font-semibold text-gray-200 text-sm">{{ review.author.username }}</span>
+              <span class="text-gray-600 text-xs">→</span>
+              <a href="{{ url_for('places.detail', slug=review.place.slug) }}"
+                 class="font-semibold text-orange-400 hover:text-orange-300 text-sm transition" target="_blank">
+                {{ review.place.name }}
+              </a>
+              <span class="text-gray-600 text-xs">{{ review.created_at.strftime('%d/%m/%Y') }}</span>
+              {% if not review.is_visible %}
+                <span class="text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">Oculta</span>
+              {% endif %}
+            </div>
+
+            <!-- Scores compactos -->
+            <div class="flex flex-wrap gap-2 text-xs text-gray-500">
+              {% for label, score in [('Sabor', review.taste_score), ('Carne', review.meat_score),
+                                       ('Salsa', review.sauce_score), ('Tortilla', review.tortilla_score),
+                                       ('Precio', review.value_score), ('Higiene', review.hygiene_score)] %}
+                <span>{{ label }}: <strong class="text-gray-300">{{ score }}</strong></span>
+              {% endfor %}
+            </div>
+
+            {% if review.comment %}
+              <p class="text-gray-400 text-sm mt-2 leading-relaxed">{{ review.comment }}</p>
+            {% endif %}
+          </div>
+
+          <div class="flex flex-col items-end gap-2 shrink-0">
+            <span class="text-2xl font-black text-orange-500">{{ review.overall_score }}</span>
+            <div class="flex gap-2">
+              <form method="POST" action="{{ url_for('admin.review_toggle', review_id=review.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="text-xs border {% if review.is_visible %}border-yellow-500/40 text-yellow-400 hover:border-yellow-500{% else %}border-green-500/40 text-green-400 hover:border-green-500{% endif %} px-2.5 py-1 rounded-lg transition">
+                  {{ 'Ocultar' if review.is_visible else 'Mostrar' }}
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('admin.review_delete', review_id=review.id) }}"
+                    onsubmit="return confirm('¿Eliminar esta reseña?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="text-xs border border-red-500/30 text-red-400/70 hover:text-red-400 hover:border-red-500/60 px-2.5 py-1 rounded-lg transition">
+                  Eliminar
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="border border-white/5 rounded-2xl p-16 text-center text-gray-600">
+    No hay reseñas todavía.
+  </div>
+{% endif %}
+{% endblock %}

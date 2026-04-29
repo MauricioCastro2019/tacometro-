@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Sugerencias · Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ url_for('admin.index') }}"
+     class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
+  <h1 class="text-2xl font-bold text-white">Sugerencias de taquerías</h1>
+  {% if pending %}
+    <span class="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+      {{ pending|length }}
+    </span>
+  {% endif %}
+</div>
+
+<!-- Pendientes -->
+{% if pending %}
+  <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Pendientes</h2>
+  <div class="space-y-3 mb-8">
+    {% for sug in pending %}
+      <div class="bg-dark-700 border border-orange-500/20 rounded-2xl p-4">
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div class="flex-1 min-w-0">
+            <p class="font-bold text-gray-100 text-base">{{ sug.name }}</p>
+            {% if sug.address %}
+              <p class="text-gray-500 text-sm mt-0.5">📍 {{ sug.address }}</p>
+            {% endif %}
+            {% if sug.notes %}
+              <p class="text-gray-400 text-sm mt-2 leading-relaxed">{{ sug.notes }}</p>
+            {% endif %}
+            <p class="text-gray-700 text-xs mt-2">
+              {{ sug.created_at.strftime('%d/%m/%Y %H:%M') }}
+              {% if sug.user %} · por {{ sug.user.username }}{% endif %}
+            </p>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <form method="POST" action="{{ url_for('admin.suggestion_approve', sug_id=sug.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 text-green-400 font-semibold px-4 py-2 rounded-xl transition text-sm">
+                ✓ Aprobar
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.suggestion_reject', sug_id=sug.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400/70 hover:text-red-400 font-semibold px-4 py-2 rounded-xl transition text-sm">
+                ✕ Rechazar
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="border border-white/5 rounded-2xl p-10 text-center text-gray-600 mb-8">
+    <p class="text-2xl mb-2">✅</p>
+    <p class="font-medium text-gray-400">Sin sugerencias pendientes.</p>
+  </div>
+{% endif %}
+
+<!-- Resueltas -->
+{% if resolved %}
+  <h2 class="text-sm font-bold text-gray-600 uppercase tracking-wider mb-3">Recientes resueltas</h2>
+  <div class="space-y-2">
+    {% for sug in resolved %}
+      <div class="bg-dark-700 border border-white/5 rounded-xl px-4 py-3 flex items-center gap-3">
+        <span class="{% if sug.status == 'approved' %}text-green-500{% else %}text-gray-600{% endif %} text-xs font-bold uppercase shrink-0">
+          {{ '✓ Aprobada' if sug.status == 'approved' else '✕ Rechazada' }}
+        </span>
+        <span class="text-gray-300 text-sm truncate">{{ sug.name }}</span>
+        {% if sug.address %}
+          <span class="text-gray-600 text-xs truncate hidden sm:block">{{ sug.address }}</span>
+        {% endif %}
+        <span class="text-gray-700 text-xs ml-auto shrink-0">{{ sug.created_at.strftime('%d/%m/%Y') }}</span>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

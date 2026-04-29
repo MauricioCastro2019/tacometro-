@@ -2,20 +2,32 @@
 {% block title %}Admin · Tacómetro{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
   <h1 class="text-2xl font-bold text-white">Panel de administración</h1>
-  <div class="flex gap-2">
-    <form method="POST" action="{{ url_for('admin.geocode_places') }}">
+  <div class="flex flex-wrap gap-2">
+    <a href="{{ url_for('admin.suggestions_index') }}"
+       class="border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 text-sm font-semibold px-4 py-2 rounded-xl transition">
+      💡 Sugerencias
+    </a>
+    <a href="{{ url_for('admin.categories_index') }}"
+       class="border border-white/15 hover:border-purple-500/50 text-gray-400 hover:text-purple-400 text-sm font-semibold px-4 py-2 rounded-xl transition">
+      🏷️ Categorías
+    </a>
+    <a href="{{ url_for('admin.reviews_index') }}"
+       class="border border-white/15 hover:border-blue-500/50 text-gray-400 hover:text-blue-400 text-sm font-semibold px-4 py-2 rounded-xl transition">
+      📝 Reseñas
+    </a>
+    <form method="POST" action="{{ url_for('admin.geocode_places') }}" class="inline">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit"
-              class="border border-white/15 hover:border-blue-500/50 text-gray-400 hover:text-blue-400 text-sm font-semibold px-4 py-2 rounded-xl transition"
-              onclick="return confirm('Esto geocodificará las taquerías sin coordenadas. Puede tardar ~2 minutos para 100 taquerías. ¿Continuar?')">
+              class="border border-white/15 hover:border-green-500/50 text-gray-400 hover:text-green-400 text-sm font-semibold px-4 py-2 rounded-xl transition"
+              onclick="return confirm('Geocodificará las taquerías sin coordenadas (~1s por lugar). ¿Continuar?')">
         📍 Geocodificar
       </button>
     </form>
     <a href="{{ url_for('admin.import_places') }}"
        class="border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 text-sm font-semibold px-4 py-2 rounded-xl transition">
-      ↑ Importar CSV / Excel
+      ↑ Importar CSV/Excel
     </a>
     <a href="{{ url_for('admin.place_create') }}"
        class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition">
@@ -24,42 +36,72 @@
   </div>
 </div>
 
+<!-- Búsqueda rápida -->
+<div class="relative mb-4">
+  <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
+       fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+  </svg>
+  <input id="admin-search" type="text" placeholder="Filtrar taquerías…"
+         class="w-full bg-dark-700 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+</div>
+
 <div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden">
-  <table class="w-full text-sm">
+  <table class="w-full text-sm" id="admin-table">
     <thead class="border-b border-white/5">
       <tr class="text-xs text-gray-600 uppercase tracking-wider">
         <th class="text-left px-5 py-3">Nombre</th>
-        <th class="text-left px-5 py-3">Ciudad</th>
-        <th class="text-center px-5 py-3">Reseñas</th>
+        <th class="text-left px-5 py-3 hidden md:table-cell">Ciudad</th>
+        <th class="text-center px-5 py-3 hidden sm:table-cell">Reseñas</th>
         <th class="text-center px-5 py-3">Score</th>
-        <th class="text-center px-5 py-3">Activa</th>
+        <th class="text-center px-5 py-3 hidden sm:table-cell">Coords</th>
+        <th class="text-center px-5 py-3 hidden sm:table-cell">Activa</th>
         <th class="px-5 py-3"></th>
       </tr>
     </thead>
     <tbody class="divide-y divide-white/5">
       {% for place in places %}
-        <tr class="hover:bg-dark-600 transition">
-          <td class="px-5 py-3 font-semibold text-gray-200">{{ place.name }}</td>
-          <td class="px-5 py-3 text-gray-500">{{ place.city }}</td>
-          <td class="px-5 py-3 text-center text-gray-500">{{ place.review_count }}</td>
-          <td class="px-5 py-3 text-center font-black text-orange-500">
+        <tr class="hover:bg-dark-600 transition admin-row" data-name="{{ place.name | lower }}">
+          <td class="px-5 py-3 font-semibold text-gray-200">
+            <a href="{{ url_for('places.detail', slug=place.slug) }}"
+               class="hover:text-orange-400 transition" target="_blank">
+              {{ place.name }}
+            </a>
+          </td>
+          <td class="px-5 py-3 text-gray-500 hidden md:table-cell">{{ place.city }}</td>
+          <td class="px-5 py-3 text-center text-gray-500 hidden sm:table-cell">{{ place.review_count }}</td>
+          <td class="px-5 py-3 text-center font-black {% if place.avg_score %}text-orange-500{% else %}text-gray-700{% endif %}">
             {{ place.avg_score or '—' }}
           </td>
-          <td class="px-5 py-3 text-center">
-            {% if place.is_active %}
-              <span class="text-green-500">●</span>
+          <td class="px-5 py-3 text-center hidden sm:table-cell">
+            {% if place.latitude and place.longitude %}
+              <span class="text-green-500" title="{{ place.latitude }}, {{ place.longitude }}">●</span>
             {% else %}
-              <span class="text-gray-700">●</span>
+              <span class="text-gray-700">○</span>
             {% endif %}
           </td>
+          <td class="px-5 py-3 text-center hidden sm:table-cell">
+            <span class="{{ 'text-green-500' if place.is_active else 'text-gray-700' }}">●</span>
+          </td>
           <td class="px-5 py-3 text-right">
-            <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
-               class="text-orange-400 hover:text-orange-300 font-semibold transition">Editar</a>
+            <div class="flex items-center justify-end gap-3">
+              <a href="{{ url_for('admin.place_edit', place_id=place.id) }}"
+                 class="text-orange-400 hover:text-orange-300 font-semibold transition">Editar</a>
+              <form method="POST" action="{{ url_for('admin.place_delete', place_id=place.id) }}"
+                    onsubmit="return confirm('¿Eliminar {{ place.name }}? Se borrarán también sus reseñas y favoritos.')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit"
+                        class="text-red-500/60 hover:text-red-400 font-semibold transition text-xs">
+                  Eliminar
+                </button>
+              </form>
+            </div>
           </td>
         </tr>
       {% else %}
         <tr>
-          <td colspan="6" class="px-5 py-10 text-center text-gray-700">
+          <td colspan="7" class="px-5 py-10 text-center text-gray-700">
             No hay taquerías registradas.
           </td>
         </tr>
@@ -67,4 +109,13 @@
     </tbody>
   </table>
 </div>
+
+<script>
+  document.getElementById('admin-search').addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.admin-row').forEach(row => {
+      row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+  });
+</script>
 {% endblock %}

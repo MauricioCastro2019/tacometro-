@@ -13,9 +13,23 @@
     TACO<span class="text-orange-500">METRO</span>
   </h1>
 
-  <p class="text-gray-400 text-lg mb-8 max-w-md mx-auto">
+  <p class="text-gray-400 text-lg mb-6 max-w-md mx-auto">
     Califica y descubre los mejores tacos de León, Guanajuato.
   </p>
+
+  <!-- Stats -->
+  <div class="flex justify-center gap-6 mb-8">
+    <div class="text-center">
+      <p class="text-3xl font-black text-orange-500">{{ total_places }}</p>
+      <p class="text-xs text-gray-600 uppercase tracking-wider mt-0.5">Taquerías</p>
+    </div>
+    <div class="w-px bg-white/10"></div>
+    <div class="text-center">
+      <p class="text-3xl font-black text-orange-500">{{ total_reviews }}</p>
+      <p class="text-xs text-gray-600 uppercase tracking-wider mt-0.5">Reseñas</p>
+    </div>
+  </div>
+
   <div class="flex justify-center gap-3 flex-wrap">
     <a href="{{ url_for('places.index') }}"
        class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-7 py-3 rounded-xl transition shadow-lg shadow-orange-500/20">
@@ -59,6 +73,15 @@
               {{ place.name }}
             </p>
             <p class="text-gray-500 text-sm truncate">{{ place.address or place.city }}</p>
+            {% if place.categories %}
+              <div class="flex flex-wrap gap-1 mt-1">
+                {% for cat in place.categories[:2] %}
+                  <span class="text-xs px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400/80 border border-orange-500/20">
+                    {{ cat.name }}
+                  </span>
+                {% endfor %}
+              </div>
+            {% endif %}
           </div>
 
           <!-- Score -->

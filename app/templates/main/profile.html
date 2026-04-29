@@ -15,6 +15,62 @@
   </div>
 </div>
 
+<!-- Favoritos -->
+<!-- Cambiar contraseña (colapsable) -->
+<details class="bg-dark-700 border border-white/5 rounded-2xl mb-6 group">
+  <summary class="flex items-center justify-between px-5 py-4 cursor-pointer list-none">
+    <span class="text-sm font-semibold text-gray-400 group-open:text-white transition">🔑 Cambiar contraseña</span>
+    <svg class="w-4 h-4 text-gray-600 transition-transform group-open:rotate-180"
+         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+    </svg>
+  </summary>
+  <div class="border-t border-white/5 px-5 pb-5 pt-4">
+    <form method="POST" action="{{ url_for('main.change_password') }}" class="space-y-3 max-w-sm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Contraseña actual</label>
+        <input type="password" name="current_password" required
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Nueva contraseña</label>
+        <input type="password" name="new_password" required minlength="6"
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+      </div>
+      <div>
+        <label class="block text-xs text-gray-500 mb-1">Confirmar nueva contraseña</label>
+        <input type="password" name="confirm_password" required minlength="6"
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+      </div>
+      <button type="submit"
+              class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2 rounded-xl transition text-sm">
+        Actualizar contraseña
+      </button>
+    </form>
+  </div>
+</details>
+
+{% if fav_places %}
+<h2 class="text-lg font-bold text-gray-300 mb-3">Mis favoritos</h2>
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+  {% for place in fav_places %}
+    <a href="{{ url_for('places.detail', slug=place.slug) }}"
+       class="bg-dark-700 border border-white/5 hover:border-orange-500/40 rounded-xl p-3 flex items-center gap-3 transition group">
+      <span class="text-xl shrink-0">❤️</span>
+      <div class="min-w-0">
+        <p class="font-semibold text-sm text-gray-100 truncate group-hover:text-orange-400 transition">{{ place.name }}</p>
+        {% if place.avg_score %}
+          <p class="text-xs text-orange-500 font-bold">{{ place.avg_score }}</p>
+        {% else %}
+          <p class="text-xs text-gray-600 italic">Sin reseñas</p>
+        {% endif %}
+      </div>
+    </a>
+  {% endfor %}
+</div>
+{% endif %}
+
 <h2 class="text-lg font-bold text-gray-300 mb-4">Mis reseñas</h2>
 
 {% if reviews %}
@@ -29,15 +85,20 @@
           <span class="text-orange-500 font-black text-2xl shrink-0">{{ review.overall_score }}</span>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 text-xs text-gray-500 bg-dark-600 rounded-xl p-3 mb-3">
+        <div class="space-y-2 bg-dark-600 rounded-xl p-3 mb-3">
           {% for label, score in [
             ('Sabor', review.taste_score), ('Carne', review.meat_score),
             ('Salsa', review.sauce_score), ('Tortilla', review.tortilla_score),
             ('Precio', review.value_score), ('Higiene', review.hygiene_score)
           ] %}
-            <div class="flex justify-between px-1">
-              <span>{{ label }}</span>
-              <strong class="text-gray-300">{{ score }}</strong>
+            {% set pct = (score / 10 * 100) | int %}
+            {% set color = 'bg-green-500' if score >= 8 else ('bg-orange-400' if score >= 5 else 'bg-red-500') %}
+            <div class="flex items-center gap-2 text-xs">
+              <span class="text-gray-500 w-14 shrink-0">{{ label }}</span>
+              <div class="flex-1 bg-dark-500 rounded-full h-1.5 overflow-hidden">
+                <div class="{{ color }} h-full rounded-full" style="width: {{ pct }}%"></div>
+              </div>
+              <strong class="text-gray-300 w-6 text-right tabular-nums">{{ score }}</strong>
             </div>
           {% endfor %}
         </div>
@@ -46,11 +107,13 @@
           <p class="text-gray-400 text-sm leading-relaxed">{{ review.comment }}</p>
         {% endif %}
 
-        <p class="text-gray-700 text-xs mt-3">
-          {{ review.created_at.strftime('%d/%m/%Y') }} ·
+        <div class="flex items-center gap-3 mt-3">
+          <span class="text-gray-700 text-xs">{{ review.created_at.strftime('%d/%m/%Y') }}</span>
           <a href="{{ url_for('places.detail', slug=review.place.slug) }}"
-             class="hover:text-orange-400 transition">Ver taquería →</a>
-        </p>
+             class="text-gray-600 hover:text-orange-400 text-xs transition">Ver taquería →</a>
+          <a href="{{ url_for('reviews.edit', review_id=review.id) }}"
+             class="text-gray-600 hover:text-orange-400 text-xs transition ml-auto">✏️ Editar</a>
+        </div>
       </div>
     {% endfor %}
   </div>

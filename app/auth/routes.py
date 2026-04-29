@@ -4,9 +4,11 @@ from app.auth import auth
 from app.auth.forms import RegisterForm, LoginForm
 from app.extensions import db
 from app.models.user import User
+from app.utils.decorators import rate_limit
 
 
 @auth.route('/register', methods=['GET', 'POST'])
+@rate_limit(10, 3600)
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
@@ -27,6 +29,7 @@ def register():
 
 
 @auth.route('/login', methods=['GET', 'POST'])
+@rate_limit(20, 300)
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
