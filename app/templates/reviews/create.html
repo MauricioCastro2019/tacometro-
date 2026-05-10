@@ -8,29 +8,29 @@
     <a href="{{ url_for('places.detail', slug=place.slug) }}"
        class="text-gray-600 hover:text-orange-400 text-sm transition">← {{ place.name }}</a>
     <h1 class="text-2xl font-bold text-white">
-      {% if edit_mode %}Editar reseña{% else %}Calificar del 1 al 10{% endif %}
+      {% if edit_mode %}Editar reseña{% else %}Calificar{% endif %}
     </h1>
   </div>
 
   <!-- Score en vivo -->
   <div class="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-5 mb-6 text-center">
     <p class="text-xs text-gray-500 mb-1 uppercase tracking-widest">Tu Tacómetro</p>
-    <p id="live-score" class="text-6xl font-black text-orange-500 tabular-nums">5.0</p>
-    <p class="text-xs text-gray-600 mt-1">Califica cada criterio del 1 al 10</p>
+    <p id="live-score" class="text-6xl font-black text-orange-500 tabular-nums">–</p>
+    <p class="text-xs text-gray-600 mt-1">Califica cada criterio del 1 al 5</p>
   </div>
 
+  <!-- Formulario principal -->
   <div class="bg-dark-700 border border-white/5 rounded-2xl p-6">
-    <form method="POST" enctype="multipart/form-data" novalidate>
+    <form id="review-form" method="POST" enctype="multipart/form-data" novalidate>
       {{ form.hidden_tag() }}
       <input type="hidden" name="place_id" value="{{ place.id }}">
 
       {% set criterios = [
-        (form.taste_score,    'Sabor',          '30%', 'taste'),
-        (form.meat_score,     'Carne',          '20%', 'meat'),
-        (form.sauce_score,    'Salsa',          '15%', 'sauce'),
-        (form.tortilla_score, 'Tortilla',       '15%', 'tortilla'),
-        (form.value_score,    'Precio-calidad', '10%', 'value'),
-        (form.hygiene_score,  'Higiene',        '10%', 'hygiene'),
+        (form.sabor,          'Sabor',         '35%', 'sabor'),
+        (form.salsa,          'Salsa',         '25%', 'salsa'),
+        (form.servicio,       'Servicio',      '15%', 'servicio'),
+        (form.precio_calidad, 'Precio/calidad','15%', 'precio_calidad'),
+        (form.higiene,        'Higiene/lugar', '10%', 'higiene'),
       ] %}
 
       <div class="space-y-7 mb-7">
@@ -43,22 +43,20 @@
               </label>
               <span id="val-{{ key }}"
                     class="text-2xl font-black text-orange-500 w-10 text-right tabular-nums">
-                5
+                {% if edit_mode %}{{ field.data or '–' }}{% else %}–{% endif %}
               </span>
             </div>
-            <input
-              type="range"
-              id="{{ field.id }}"
-              name="{{ field.name }}"
-              min="1" max="10" value="5"
-              data-key="{{ key }}"
-              class="w-full h-2 rounded-full accent-orange-500 cursor-pointer bg-dark-500"
-              oninput="updateScore(this)"
-            >
-            <div class="flex justify-between text-xs text-gray-700 mt-1.5">
-              <span>1 Malo</span>
-              <span>10 Excelente</span>
+            <!-- Estrellas táctiles -->
+            <div class="star-group flex gap-3 justify-center py-1" data-campo="{{ key }}" data-init="{{ field.data or '' }}">
+              {% for i in range(1, 6) %}
+                <button type="button" data-val="{{ i }}"
+                        class="star-btn text-4xl leading-none transition-transform active:scale-90 select-none">
+                  {% if edit_mode and field.data and i <= field.data %}⭐{% else %}☆{% endif %}
+                </button>
+              {% endfor %}
             </div>
+            <input type="hidden" name="{{ field.name }}" id="input-{{ key }}"
+                   value="{{ field.data or '' }}">
             {% for error in field.errors %}
               <p class="text-red-400 text-xs mt-1">{{ error }}</p>
             {% endfor %}
@@ -68,8 +66,8 @@
 
       <!-- Comentario -->
       <div class="mb-5">
-        {{ form.comment.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
-        {{ form.comment(
+        {{ form.comentario.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
+        {{ form.comentario(
           class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition h-24 resize-none",
           placeholder="¿Qué destacas de esta taquería? (opcional)"
         ) }}
@@ -77,9 +75,7 @@
 
       <!-- Foto -->
       <div class="mb-6">
-        <label class="block text-sm font-medium text-gray-400 mb-2">Foto (opcional)</label>
-
-        <!-- Preview -->
+        <label class="block text-sm font-medium text-gray-400 mb-2">Foto de comida (opcional)</label>
         <div id="review-img-wrap" class="hidden mb-3">
           <img id="review-img-preview" src="" alt="Preview"
                class="w-full h-48 object-cover rounded-xl">
@@ -88,76 +84,112 @@
             × Quitar foto
           </button>
         </div>
-
-        <!-- Botón cámara -->
         <label for="review_image_input"
-               class="flex items-center gap-3 bg-dark-600 border border-white/10 hover:border-orange-500/60 rounded-xl px-4 py-3 cursor-pointer transition active:scale-[0.99]">
+               class="flex items-center gap-3 bg-dark-600 border border-white/10 hover:border-orange-500/60 rounded-xl px-4 py-3 cursor-pointer transition">
           <span class="text-2xl">📷</span>
           <div>
             <span class="text-sm font-medium text-gray-300">Tomar foto o elegir de galería</span>
             <span class="text-xs text-gray-600 block">JPG, PNG o WebP (opcional)</span>
           </div>
         </label>
-        <input type="file" id="review_image_input" name="image_file"
-               accept="image/*"
-               class="hidden"
+        <input type="file" id="review_image_input" name="foto_comida"
+               accept="image/*" class="hidden"
                onchange="previewReviewImage(this)">
       </div>
 
-      <div class="flex gap-3">
-        {{ form.submit(
-          class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-orange-500/20 text-base",
-          value=("Guardar cambios" if edit_mode else "Publicar calificación")
-        ) }}
-        {% if edit_mode %}
-          <a href="{{ url_for('places.detail', slug=place.slug) }}"
-             class="border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-5 py-3 rounded-xl transition text-base text-center">
-            Cancelar
-          </a>
-        {% endif %}
-      </div>
-
-      {% if edit_mode %}
-        <form method="POST" action="{{ url_for('reviews.delete', review_id=review.id) }}"
-              onsubmit="return confirm('¿Eliminar tu reseña de {{ place.name }}?')"
-              class="mt-3">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit"
-                  class="w-full text-sm text-red-500/60 hover:text-red-400 transition py-2">
-            Eliminar reseña
-          </button>
-        </form>
-      {% endif %}
+      <button type="submit"
+              class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-orange-500/20 text-base">
+        {{ 'Guardar cambios' if edit_mode else 'Guardar calificación' }}
+      </button>
+      <p id="aviso-estrellas" class="text-center text-xs text-red-400 mt-2 hidden">
+        Selecciona las estrellas en cada criterio.
+      </p>
     </form>
   </div>
+
+  <!-- Formulario eliminar — SEPARADO del form principal, fuera de él -->
+  {% if edit_mode %}
+    <form method="POST" action="{{ url_for('reviews.delete', review_id=review.id) }}"
+          onsubmit="return confirm('¿Eliminar tu reseña de {{ place.name }}?')"
+          class="mt-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit"
+              class="w-full text-sm text-red-500/60 hover:text-red-400 transition py-2">
+        Eliminar reseña
+      </button>
+    </form>
+  {% endif %}
 </div>
 
 <script>
-  const pesos   = { taste: 0.30, meat: 0.20, sauce: 0.15, tortilla: 0.15, value: 0.10, hygiene: 0.10 };
-  const valores = { taste: 5, meat: 5, sauce: 5, tortilla: 5, value: 5, hygiene: 5 };
+const PESOS   = { sabor: 0.35, salsa: 0.25, precio_calidad: 0.15, servicio: 0.15, higiene: 0.10 };
+const valores = {};
 
-  function updateScore(input) {
-    const key = input.dataset.key;
-    valores[key] = parseInt(input.value);
-    document.getElementById('val-' + key).textContent = input.value;
-    const score = Object.keys(pesos).reduce((sum, k) => sum + valores[k] * pesos[k], 0);
-    document.getElementById('live-score').textContent = score.toFixed(1);
+function calcScore() {
+  const campos = Object.keys(PESOS);
+  if (campos.some(k => !valores[k])) return null;
+  return campos.reduce((sum, k) => sum + valores[k] * PESOS[k], 0);
+}
+
+function actualizarScore() {
+  const score = calcScore();
+  document.getElementById('live-score').textContent =
+    score !== null ? score.toFixed(1) : '–';
+}
+
+document.querySelectorAll('.star-group').forEach(group => {
+  const campo = group.dataset.campo;
+  const btns  = group.querySelectorAll('.star-btn');
+  const input = document.getElementById('input-' + campo);
+  const label = document.getElementById('val-' + campo);
+
+  // Inicializar con valor existente (modo edición)
+  const initVal = parseInt(group.dataset.init);
+  if (initVal >= 1 && initVal <= 5) {
+    valores[campo] = initVal;
+    actualizarScore();
   }
 
-  function previewReviewImage(input) {
-    if (!input.files || !input.files[0]) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      document.getElementById('review-img-preview').src = e.target.result;
-      document.getElementById('review-img-wrap').classList.remove('hidden');
-    };
-    reader.readAsDataURL(input.files[0]);
+  function pintarEstrellas(n) {
+    btns.forEach((b, i) => { b.textContent = i < n ? '⭐' : '☆'; });
   }
 
-  function clearReviewImage() {
-    document.getElementById('review-img-preview').src = '';
-    document.getElementById('review-img-wrap').classList.add('hidden');
-    document.getElementById('review_image_input').value = '';
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = parseInt(btn.dataset.val);
+      valores[campo] = v;
+      input.value = v;
+      label.textContent = v;
+      pintarEstrellas(v);
+      actualizarScore();
+    });
+    btn.addEventListener('mouseenter', () => pintarEstrellas(parseInt(btn.dataset.val)));
+    btn.addEventListener('mouseleave', () => pintarEstrellas(valores[campo] || 0));
+  });
+});
+
+document.getElementById('review-form').addEventListener('submit', function (e) {
+  if (calcScore() === null) {
+    e.preventDefault();
+    document.getElementById('aviso-estrellas').classList.remove('hidden');
+    document.getElementById('aviso-estrellas').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+});
+
+function previewReviewImage(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('review-img-preview').src = e.target.result;
+    document.getElementById('review-img-wrap').classList.remove('hidden');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function clearReviewImage() {
+  document.getElementById('review-img-preview').src = '';
+  document.getElementById('review-img-wrap').classList.add('hidden');
+  document.getElementById('review_image_input').value = '';
+}
 </script>
 {% endblock %}

@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% block title %}¡Reseña guardada! · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto text-center py-8">
+
+  <!-- Celebración -->
+  <div class="text-6xl mb-4">🌮</div>
+  <h1 class="text-3xl font-black text-white mb-2">¡Taqueada registrada!</h1>
+  <p class="text-gray-500 mb-6">Tu reseña ya forma parte del ranking callejero de León.</p>
+
+  <!-- Score card -->
+  <div class="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-8 mb-6 inline-block w-full">
+    <p class="text-xs text-gray-500 uppercase tracking-widest mb-2">Tu Tacómetro</p>
+    <p class="text-8xl font-black text-orange-500 tabular-nums leading-none mb-3">
+      {{ review.overall_score }}
+    </p>
+    <p class="text-gray-300 font-bold text-xl">{{ place.name }}</p>
+    {% if place.address %}
+      <p class="text-gray-600 text-sm mt-1">📍 {{ place.address }}</p>
+    {% endif %}
+
+    {% if place.avg_score and place.review_count > 1 %}
+      <div class="mt-4 pt-4 border-t border-white/10">
+        <p class="text-xs text-gray-600">Promedio de la taquería</p>
+        <p class="text-2xl font-black text-orange-400">{{ place.avg_score }}</p>
+        <p class="text-xs text-gray-600">{{ place.review_count }} reseña{{ 's' if place.review_count != 1 }}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Criterios -->
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 mb-6 text-left">
+    {% set criterios = [
+      ('Sabor',         review.sabor,          '35%'),
+      ('Salsa',         review.salsa,          '25%'),
+      ('Servicio',      review.servicio,        '15%'),
+      ('Precio/cal.',   review.precio_calidad,  '15%'),
+      ('Higiene',       review.higiene,         '10%'),
+    ] %}
+    <div class="space-y-2.5">
+      {% for label, score, peso in criterios %}
+        {% set pct = (score / 5 * 100) | int %}
+        {% set color = 'bg-green-500' if score >= 4 else ('bg-orange-400' if score >= 3 else 'bg-red-500') %}
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-gray-500 w-24 shrink-0">{{ label }}</span>
+          <div class="flex-1 bg-dark-500 rounded-full h-2 overflow-hidden">
+            <div class="{{ color }} h-full rounded-full" style="width: {{ pct }}%"></div>
+          </div>
+          <span class="text-orange-400 font-black w-6 text-right">{{ score | int }}</span>
+          <span class="text-yellow-400 text-xs">{{ '⭐' * (score | int) }}</span>
+        </div>
+      {% endfor %}
+    </div>
+    {% if review.volveria is not none %}
+      <p class="text-sm text-gray-500 mt-3 pt-3 border-t border-white/5">
+        ¿Volvería?
+        <strong class="{{ 'text-green-400' if review.volveria else 'text-red-400' }}">
+          {{ '👍 Sí' if review.volveria else '👎 No' }}
+        </strong>
+      </p>
+    {% endif %}
+    {% if review.tacos_probados %}
+      <p class="text-sm text-gray-500 mt-1">
+        Pidió: <span class="text-gray-300">{{ review.tacos_probados }}</span>
+      </p>
+    {% endif %}
+    {% if review.gasto_aproximado %}
+      <p class="text-sm text-gray-500 mt-1">
+        Gasto: <span class="text-gray-300">${{ '%.0f'|format(review.gasto_aproximado) }} MXN</span>
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- Foto si existe -->
+  {% if review.foto_comida %}
+    <div class="mb-6">
+      <img src="{{ review.foto_comida }}" alt="Tu foto"
+           class="w-full h-56 object-cover rounded-2xl">
+    </div>
+  {% endif %}
+
+  <!-- Comentario -->
+  {% if review.comentario %}
+    <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 mb-6 text-left">
+      <p class="text-gray-400 text-sm italic">"{{ review.comentario }}"</p>
+    </div>
+  {% endif %}
+
+  <!-- Acciones -->
+  <div class="grid grid-cols-2 gap-3 mb-4">
+    <a href="{{ url_for('places.detail', slug=place.slug) }}"
+       class="flex items-center justify-center gap-2 bg-dark-700 border border-white/10 hover:border-orange-500/40 text-gray-300 hover:text-orange-400 font-semibold py-3.5 rounded-xl transition">
+      🌮 Ver taquería
+    </a>
+    <a href="{{ url_for('califica.inicio') }}"
+       class="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-orange-500/20">
+      + Calificar otra
+    </a>
+  </div>
+
+  <!-- Compartir -->
+  <button id="btn-share"
+          class="w-full flex items-center justify-center gap-2 border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 font-semibold py-3 rounded-xl transition">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+    </svg>
+    <span id="share-label">Compartir reseña</span>
+  </button>
+
+  <p class="text-xs text-gray-700 mt-6">
+    Tacómetro Beta León · El ranking callejero más honesto de la ciudad 🌮
+  </p>
+</div>
+
+<script>
+(function () {
+  const btn = document.getElementById('btn-share');
+  const title = '{{ place.name }} · Tacómetro {{ review.overall_score }}/5';
+  const url   = '{{ url_for("places.detail", slug=place.slug, _external=True) }}';
+  btn.addEventListener('click', async () => {
+    if (navigator.share) {
+      await navigator.share({ title, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(url).catch(() => {});
+      document.getElementById('share-label').textContent = '¡Enlace copiado!';
+      setTimeout(() => document.getElementById('share-label').textContent = 'Compartir reseña', 2000);
+    }
+  });
+})();
+</script>
+{% endblock %}

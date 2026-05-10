@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Error · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="text-center py-24">
+  <p class="text-7xl mb-4">😬</p>
+  <h1 class="text-6xl font-black text-white mb-2">Oops</h1>
+  <p class="text-gray-500 text-lg mb-2">Algo salió mal en la cocina.</p>
+  <p class="text-gray-600 text-sm mb-8">El error fue registrado. Intenta de nuevo en un momento.</p>
+  <div class="flex justify-center gap-3 flex-wrap">
+    <a href="{{ url_for('main.index') }}"
+       class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-xl transition">
+      Ir al inicio
+    </a>
+    <a href="{{ url_for('califica.inicio') }}"
+       class="border border-orange-500/50 text-orange-400 hover:bg-orange-500/10 font-bold px-6 py-3 rounded-xl transition">
+      Califica ahora
+    </a>
+  </div>
+</div>
+{% endblock %}

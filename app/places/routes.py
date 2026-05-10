@@ -65,14 +65,16 @@ def detail(slug):
     radar = None
     if reviews:
         n = len(reviews)
-        radar = {
-            'Sabor':    round(sum(r.taste_score    for r in reviews) / n, 1),
-            'Carne':    round(sum(r.meat_score     for r in reviews) / n, 1),
-            'Salsa':    round(sum(r.sauce_score    for r in reviews) / n, 1),
-            'Tortilla': round(sum(r.tortilla_score for r in reviews) / n, 1),
-            'Precio':   round(sum(r.value_score    for r in reviews) / n, 1),
-            'Higiene':  round(sum(r.hygiene_score  for r in reviews) / n, 1),
-        }
+        try:
+            radar = {
+                'Sabor':         round(sum(r.sabor          for r in reviews) / n, 1),
+                'Salsa':         round(sum(r.salsa          for r in reviews) / n, 1),
+                'Servicio':      round(sum(r.servicio       for r in reviews) / n, 1),
+                'Precio/cal.':   round(sum(r.precio_calidad for r in reviews) / n, 1),
+                'Higiene':       round(sum(r.higiene        for r in reviews) / n, 1),
+            }
+        except Exception:
+            radar = None
 
     # Taquerías similares (misma categoría, excluye la actual)
     similar = []

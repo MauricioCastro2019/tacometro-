@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block title %}Nueva taquería · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+
+  <div class="flex items-center gap-3 mb-6">
+    <a href="{{ url_for('califica.inicio') }}"
+       class="text-gray-600 hover:text-orange-400 transition text-sm">← Buscar</a>
+    <h1 class="text-2xl font-black text-white">Agregar taquería</h1>
+  </div>
+
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-6">
+    <form method="POST" enctype="multipart/form-data" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Nombre (obligatorio) -->
+      <div class="mb-5">
+        <label class="block text-sm font-semibold text-gray-200 mb-1.5">
+          Nombre de la taquería <span class="text-orange-500">*</span>
+        </label>
+        <input type="text" name="nombre"
+               value="{{ nombre_sugerido }}"
+               required
+               placeholder="Ej: Tacos El Güero"
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition text-base">
+      </div>
+
+      <!-- Dirección (opcional) -->
+      <div class="mb-5">
+        <label class="block text-sm font-semibold text-gray-200 mb-1.5">
+          Dirección o referencia
+          <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <input type="text" name="direccion"
+               id="campo-direccion"
+               placeholder="Ej: Frente al Walmart, Blvd. Torres Landa"
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition text-base">
+      </div>
+
+      <!-- Ubicación GPS (se llena solo si el usuario la da) -->
+      <div class="mb-5">
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-sm font-semibold text-gray-200">Ubicación GPS</label>
+          <button type="button" id="btn-gps"
+                  class="text-xs text-orange-400 hover:text-orange-300 transition flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            </svg>
+            Usar mi ubicación actual
+          </button>
+        </div>
+        <div class="flex gap-2">
+          <input type="number" name="latitud" id="campo-lat" step="any"
+                 placeholder="Latitud"
+                 class="flex-1 bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition text-sm">
+          <input type="number" name="longitud" id="campo-lng" step="any"
+                 placeholder="Longitud"
+                 class="flex-1 bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition text-sm">
+        </div>
+        <p id="gps-status" class="text-xs text-gray-600 mt-1.5"></p>
+      </div>
+
+      <!-- Tipo de taco (categorías) -->
+      <div class="mb-5">
+        <label class="block text-sm font-semibold text-gray-200 mb-2">
+          Especialidad <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <div class="flex flex-wrap gap-2">
+          {% for cat in categorias %}
+            <label class="cursor-pointer">
+              <input type="checkbox" name="categorias" value="{{ cat.id }}" class="peer hidden">
+              <span class="inline-block px-3 py-1.5 rounded-full text-sm border border-white/10
+                           peer-checked:bg-orange-500/20 peer-checked:border-orange-500/60 peer-checked:text-orange-400
+                           text-gray-400 hover:border-white/30 transition select-none">
+                {{ cat.icon or '' }} {{ cat.name }}
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Foto del lugar (opcional) -->
+      <div class="mb-5">
+        <label class="block text-sm font-semibold text-gray-200 mb-2">
+          Foto del lugar <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <div id="lugar-img-wrap" class="hidden mb-3">
+          <img id="lugar-img-preview" src="" alt="Preview"
+               class="w-full h-40 object-cover rounded-xl">
+          <button type="button" onclick="clearLugarImg()"
+                  class="mt-1.5 text-xs text-gray-600 hover:text-red-400 transition">
+            × Quitar foto
+          </button>
+        </div>
+        <label for="foto_lugar_input"
+               class="flex items-center gap-3 bg-dark-600 border border-white/10 hover:border-orange-500/60 rounded-xl px-4 py-3 cursor-pointer transition">
+          <span class="text-2xl">📷</span>
+          <div>
+            <span class="text-sm font-medium text-gray-300">Foto del local</span>
+            <span class="text-xs text-gray-600 block">JPG, PNG o WebP (opcional)</span>
+          </div>
+        </label>
+        <input type="file" id="foto_lugar_input" name="foto_lugar"
+               accept="image/*" class="hidden"
+               onchange="previewLugarImg(this)">
+      </div>
+
+      <!-- Comentario breve (opcional) -->
+      <div class="mb-6">
+        <label class="block text-sm font-semibold text-gray-200 mb-1.5">
+          Comentario breve <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <textarea name="comentario" rows="2"
+                  placeholder="¿Qué sabes de esta taquería?"
+                  class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition resize-none"></textarea>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-orange-500 hover:bg-orange-600 text-white font-black py-4 rounded-xl transition shadow-lg shadow-orange-500/20 text-lg">
+        Registrar y calificar →
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+function previewLugarImg(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('lugar-img-preview').src = e.target.result;
+    document.getElementById('lugar-img-wrap').classList.remove('hidden');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function clearLugarImg() {
+  document.getElementById('lugar-img-preview').src = '';
+  document.getElementById('lugar-img-wrap').classList.add('hidden');
+  document.getElementById('foto_lugar_input').value = '';
+}
+
+document.getElementById('btn-gps').addEventListener('click', function () {
+  const status = document.getElementById('gps-status');
+  if (!navigator.geolocation) {
+    status.textContent = 'Tu navegador no soporta geolocalización.';
+    return;
+  }
+  status.textContent = 'Obteniendo ubicación…';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      document.getElementById('campo-lat').value = pos.coords.latitude.toFixed(6);
+      document.getElementById('campo-lng').value = pos.coords.longitude.toFixed(6);
+      status.textContent = '✓ Ubicación capturada';
+      status.classList.add('text-green-500');
+    },
+    () => {
+      status.textContent = 'No se pudo obtener la ubicación. Puedes dejarla vacía.';
+    },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+});
+</script>
+{% endblock %}

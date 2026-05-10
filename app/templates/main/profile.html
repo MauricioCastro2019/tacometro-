@@ -87,24 +87,24 @@
 
         <div class="space-y-2 bg-dark-600 rounded-xl p-3 mb-3">
           {% for label, score in [
-            ('Sabor', review.taste_score), ('Carne', review.meat_score),
-            ('Salsa', review.sauce_score), ('Tortilla', review.tortilla_score),
-            ('Precio', review.value_score), ('Higiene', review.hygiene_score)
+            ('Sabor', review.sabor), ('Salsa', review.salsa),
+            ('Servicio', review.servicio), ('Precio', review.precio_calidad),
+            ('Higiene', review.higiene)
           ] %}
-            {% set pct = (score / 10 * 100) | int %}
-            {% set color = 'bg-green-500' if score >= 8 else ('bg-orange-400' if score >= 5 else 'bg-red-500') %}
+            {% set pct = (score / 5 * 100) | int %}
+            {% set color = 'bg-green-500' if score >= 4 else ('bg-orange-400' if score >= 3 else 'bg-red-500') %}
             <div class="flex items-center gap-2 text-xs">
-              <span class="text-gray-500 w-14 shrink-0">{{ label }}</span>
+              <span class="text-gray-500 w-16 shrink-0">{{ label }}</span>
               <div class="flex-1 bg-dark-500 rounded-full h-1.5 overflow-hidden">
                 <div class="{{ color }} h-full rounded-full" style="width: {{ pct }}%"></div>
               </div>
-              <strong class="text-gray-300 w-6 text-right tabular-nums">{{ score }}</strong>
+              <strong class="text-gray-300 w-8 text-right tabular-nums">{{ '⭐' * (score | int) }}</strong>
             </div>
           {% endfor %}
         </div>
 
-        {% if review.comment %}
-          <p class="text-gray-400 text-sm leading-relaxed">{{ review.comment }}</p>
+        {% if review.comentario %}
+          <p class="text-gray-400 text-sm leading-relaxed">{{ review.comentario }}</p>
         {% endif %}
 
         <div class="flex items-center gap-3 mt-3">
@@ -121,9 +121,9 @@
   <div class="border border-white/5 rounded-2xl p-10 text-center text-gray-600">
     <p class="text-4xl mb-3">📋</p>
     <p class="font-medium text-gray-400">Aún no has escrito ninguna reseña.</p>
-    <a href="{{ url_for('places.index') }}"
+    <a href="{{ url_for('califica.inicio') }}"
        class="inline-block mt-4 bg-orange-500 hover:bg-orange-600 text-white font-bold px-5 py-2.5 rounded-xl transition">
-      Ver taquerías
+      ¡Califica ahora!
     </a>
   </div>
 {% endif %}

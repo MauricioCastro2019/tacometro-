@@ -43,6 +43,9 @@ def create_app(config_name=None):
     with app.app_context():
         _promote_admin_from_env()
 
+    from app.califica import califica as califica_bp
+    app.register_blueprint(califica_bp, url_prefix='/califica')
+
     # Manejadores de error
     @app.errorhandler(404)
     def not_found(e):
@@ -58,6 +61,15 @@ def create_app(config_name=None):
     def too_many_requests(e):
         from flask import render_template
         return render_template('errors/429.html'), 429
+
+    @app.errorhandler(500)
+    def internal_error(e):
+        import logging
+        from flask import render_template
+        from app.extensions import db
+        logging.getLogger(__name__).error(f'Error 500: {e}', exc_info=True)
+        db.session.rollback()
+        return render_template('errors/500.html'), 500
 
     return app
 

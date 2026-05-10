@@ -7,42 +7,49 @@ class Review(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # Claves foráneas
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    # user_id nullable para permitir reseñas con nickname (beta sin login obligatorio)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     place_id = db.Column(db.Integer, db.ForeignKey('places.id'), nullable=False)
 
-    # Puntuaciones (1-10)
-    taste_score = db.Column(db.Float, nullable=False)     # sabor      30%
-    meat_score = db.Column(db.Float, nullable=False)      # carne      20%
-    sauce_score = db.Column(db.Float, nullable=False)     # salsa      15%
-    tortilla_score = db.Column(db.Float, nullable=False)  # tortilla   15%
-    value_score = db.Column(db.Float, nullable=False)     # precio-cal 10%
-    hygiene_score = db.Column(db.Float, nullable=False)   # higiene    10%
+    # Nombre de usuario para reseñas anónimas
+    nickname = db.Column(db.String(64), nullable=True)
+
+    # Puntuaciones 1-5
+    sabor = db.Column(db.Float, nullable=False)           # 35%
+    salsa = db.Column(db.Float, nullable=False)           # 25%
+    servicio = db.Column(db.Float, nullable=False)        # 15%
+    precio_calidad = db.Column(db.Float, nullable=False)  # 15%
+    higiene = db.Column(db.Float, nullable=False)         # 10%
 
     # Texto y media
-    comment = db.Column(db.Text)
-    image_url = db.Column(db.String(256))
+    comentario = db.Column(db.Text)
+    foto_comida = db.Column(db.String(512))
+
+    # Campos adicionales
+    volveria = db.Column(db.Boolean, nullable=True)
+    gasto_aproximado = db.Column(db.Float, nullable=True)
+    tacos_probados = db.Column(db.String(256), nullable=True)
 
     # Control
     is_visible = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Restricción: un usuario, una reseña por lugar
-    __table_args__ = (
-        db.UniqueConstraint('user_id', 'place_id', name='uq_user_place_review'),
-    )
-
     @property
     def overall_score(self):
         return round(
-            (self.taste_score * 0.30) +
-            (self.meat_score * 0.20) +
-            (self.sauce_score * 0.15) +
-            (self.tortilla_score * 0.15) +
-            (self.value_score * 0.10) +
-            (self.hygiene_score * 0.10),
-            2
+            (self.sabor * 0.35) +
+            (self.salsa * 0.25) +
+            (self.precio_calidad * 0.15) +
+            (self.servicio * 0.15) +
+            (self.higiene * 0.10),
+            1
         )
 
+    @property
+    def display_name(self):
+        if self.author:
+            return self.author.username
+        return self.nickname or 'Anónimo'
+
     def __repr__(self):
-        return f'<Review user={self.user_id} place={self.place_id} score={self.overall_score}>'
+        return f'<Review place={self.place_id} score={self.overall_score}>'

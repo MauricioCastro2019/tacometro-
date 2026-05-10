@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% block title %}Calificar {{ place.name }} · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+
+  <div class="flex items-center gap-3 mb-5">
+    <a href="{{ url_for('califica.inicio') }}"
+       class="text-gray-600 hover:text-orange-400 transition text-sm">← Cambiar</a>
+    <div class="min-w-0">
+      <h1 class="text-xl font-black text-white truncate">{{ place.name }}</h1>
+      {% if place.address %}
+        <p class="text-xs text-gray-600 truncate">📍 {{ place.address }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Score en vivo -->
+  <div class="bg-orange-500/10 border border-orange-500/30 rounded-2xl p-5 mb-5 text-center">
+    <p class="text-xs text-gray-500 uppercase tracking-widest mb-1">Tu Tacómetro</p>
+    <p id="live-score" class="text-7xl font-black text-orange-500 tabular-nums leading-none">–</p>
+    <p class="text-xs text-gray-600 mt-1">/ 5.0 · Califica cada criterio</p>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Criterios de calificación con estrellas -->
+    <div class="bg-dark-700 border border-white/5 rounded-2xl p-5 mb-4">
+      {% set criterios = [
+        ('sabor',          'Sabor',          '35%', '🌶️'),
+        ('salsa',          'Salsa',          '25%', '🥣'),
+        ('servicio',       'Servicio',       '15%', '🤝'),
+        ('precio_calidad', 'Precio/calidad', '15%', '💰'),
+        ('higiene',        'Higiene/lugar',  '10%', '✨'),
+      ] %}
+
+      <div class="space-y-6">
+        {% for campo, label, peso, icono in criterios %}
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="font-semibold text-gray-200 text-sm">
+                {{ icono }} {{ label }}
+                <span class="text-xs text-gray-600 font-normal ml-1">{{ peso }}</span>
+              </span>
+              <span id="val-{{ campo }}" class="text-xl font-black text-gray-600">–</span>
+            </div>
+            <!-- Estrellas táctiles -->
+            <div class="star-group flex gap-3 justify-center py-1" data-campo="{{ campo }}">
+              {% for i in range(1, 6) %}
+                <button type="button"
+                        data-val="{{ i }}"
+                        class="star-btn text-4xl leading-none transition-transform active:scale-90 select-none"
+                        aria-label="{{ i }} estrellas">☆</button>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="{{ campo }}" id="input-{{ campo }}" value="">
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Campos opcionales extra -->
+    <div class="bg-dark-700 border border-white/5 rounded-2xl p-5 mb-4 space-y-4">
+
+      <!-- ¿Volverías? -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-300 mb-2">
+          ¿Volverías? <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <div class="flex gap-2">
+          <label class="flex-1 cursor-pointer">
+            <input type="radio" name="volveria" value="si" class="peer hidden">
+            <span class="flex items-center justify-center gap-1.5 border border-white/10 peer-checked:border-green-500/60 peer-checked:bg-green-500/10 peer-checked:text-green-400 text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition select-none">
+              👍 Sí
+            </span>
+          </label>
+          <label class="flex-1 cursor-pointer">
+            <input type="radio" name="volveria" value="no" class="peer hidden">
+            <span class="flex items-center justify-center gap-1.5 border border-white/10 peer-checked:border-red-500/60 peer-checked:bg-red-500/10 peer-checked:text-red-400 text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition select-none">
+              👎 No
+            </span>
+          </label>
+          <label class="flex-1 cursor-pointer">
+            <input type="radio" name="volveria" value="" checked class="peer hidden">
+            <span class="flex items-center justify-center gap-1.5 border border-white/10 peer-checked:border-gray-500/60 peer-checked:bg-white/5 peer-checked:text-gray-300 text-gray-600 rounded-xl py-2.5 text-sm font-semibold transition select-none">
+              🤷 NS/NC
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <!-- ¿Qué pediste? -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-300 mb-1.5">
+          ¿Qué pediste? <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <input type="text" name="tacos_probados"
+               placeholder="Ej: Suadero, tripa, 3 tacos con todo"
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+      </div>
+
+      <!-- Gasto aproximado -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-300 mb-1.5">
+          Gasto aproximado <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <div class="relative">
+          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 text-sm">$</span>
+          <input type="number" name="gasto_aproximado"
+                 min="0" step="5" placeholder="0"
+                 class="w-full bg-dark-600 border border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+        </div>
+      </div>
+
+      <!-- Comentario -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-300 mb-1.5">
+          Comentario <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <textarea name="comentario" rows="3"
+                  placeholder="¿Qué destacas? ¿Algo que mejorar?"
+                  class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition resize-none"></textarea>
+      </div>
+
+      <!-- Foto de comida -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-300 mb-2">
+          Foto de la comida <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <div id="foto-wrap" class="hidden mb-2">
+          <img id="foto-preview" src="" alt="Preview"
+               class="w-full h-40 object-cover rounded-xl">
+          <button type="button" onclick="clearFoto()"
+                  class="mt-1 text-xs text-gray-600 hover:text-red-400 transition">
+            × Quitar foto
+          </button>
+        </div>
+        <label for="foto_comida_input"
+               class="flex items-center gap-3 bg-dark-600 border border-white/10 hover:border-orange-500/60 rounded-xl px-4 py-3 cursor-pointer transition">
+          <span class="text-2xl">📸</span>
+          <div>
+            <span class="text-sm font-medium text-gray-300">Tomar o elegir foto</span>
+            <span class="text-xs text-gray-600 block">JPG, PNG o WebP</span>
+          </div>
+        </label>
+        <input type="file" id="foto_comida_input" name="foto_comida"
+               accept="image/*" class="hidden"
+               onchange="previewFoto(this)">
+      </div>
+
+      <!-- Nickname si no está logueado -->
+      {% if not current_user.is_authenticated %}
+        <div>
+          <label class="block text-sm font-semibold text-gray-300 mb-1.5">
+            Tu nombre o apodo <span class="text-gray-600 font-normal">(opcional)</span>
+          </label>
+          <input type="text" name="nickname" maxlength="64"
+                 placeholder="Ej: El Taquero Crítico"
+                 class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+        </div>
+      {% endif %}
+    </div>
+
+    <button type="submit" id="btn-guardar"
+            class="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl transition shadow-lg shadow-orange-500/20 text-lg">
+      Guardar calificación 🌮
+    </button>
+    <p id="aviso-estrellas" class="text-center text-xs text-red-400 mt-2 hidden">
+      Selecciona las estrellas en cada criterio antes de guardar.
+    </p>
+  </form>
+</div>
+
+<script>
+const PESOS = { sabor: 0.35, salsa: 0.25, precio_calidad: 0.15, servicio: 0.15, higiene: 0.10 };
+const valores = {};
+
+function calcScore() {
+  const campos = Object.keys(PESOS);
+  if (campos.some(k => !valores[k])) return null;
+  return campos.reduce((sum, k) => sum + valores[k] * PESOS[k], 0);
+}
+
+function actualizarScore() {
+  const score = calcScore();
+  const el = document.getElementById('live-score');
+  el.textContent = score !== null ? score.toFixed(1) : '–';
+}
+
+document.querySelectorAll('.star-group').forEach(group => {
+  const campo = group.dataset.campo;
+  const btns  = group.querySelectorAll('.star-btn');
+  const input = document.getElementById('input-' + campo);
+  const label = document.getElementById('val-' + campo);
+
+  function pintarEstrellas(n) {
+    btns.forEach((b, i) => {
+      b.textContent = i < n ? '⭐' : '☆';
+    });
+  }
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const v = parseInt(btn.dataset.val);
+      valores[campo] = v;
+      input.value = v;
+      label.textContent = v;
+      label.classList.remove('text-gray-600');
+      label.classList.add('text-orange-400');
+      pintarEstrellas(v);
+      actualizarScore();
+    });
+
+    btn.addEventListener('mouseenter', () => pintarEstrellas(parseInt(btn.dataset.val)));
+    btn.addEventListener('mouseleave', () => pintarEstrellas(valores[campo] || 0));
+    btn.addEventListener('touchstart', () => {}, { passive: true });
+  });
+});
+
+document.querySelector('form').addEventListener('submit', function (e) {
+  if (calcScore() === null) {
+    e.preventDefault();
+    document.getElementById('aviso-estrellas').classList.remove('hidden');
+    document.getElementById('aviso-estrellas').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+
+function previewFoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('foto-preview').src = e.target.result;
+    document.getElementById('foto-wrap').classList.remove('hidden');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function clearFoto() {
+  document.getElementById('foto-preview').src = '';
+  document.getElementById('foto-wrap').classList.add('hidden');
+  document.getElementById('foto_comida_input').value = '';
+}
+</script>
+{% endblock %}
