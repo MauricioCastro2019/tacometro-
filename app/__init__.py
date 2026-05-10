@@ -1,7 +1,10 @@
 import os
+import logging
 from flask import Flask
 from config import config
-from app.extensions import db, migrate, login_manager
+from app.extensions import db, migrate, login_manager, csrf
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(config_name=None):
@@ -15,6 +18,7 @@ def create_app(config_name=None):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    csrf.init_app(app)
 
     # Importar modelos (necesario para que Flask-Migrate los detecte)
     from app import models  # noqa: F401
@@ -39,12 +43,13 @@ def create_app(config_name=None):
     from app.admin import admin as admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    # Promover admin desde variable de entorno
-    with app.app_context():
-        _promote_admin_from_env()
-
     from app.califica import califica as califica_bp
     app.register_blueprint(califica_bp, url_prefix='/califica')
+
+    # Correr migraciones y setup inicial al arrancar
+    with app.app_context():
+        _run_migrations()
+        _promote_admin_from_env()
 
     # Manejadores de error
     @app.errorhandler(404)
@@ -64,23 +69,33 @@ def create_app(config_name=None):
 
     @app.errorhandler(500)
     def internal_error(e):
-        import logging
         from flask import render_template
-        from app.extensions import db
-        logging.getLogger(__name__).error(f'Error 500: {e}', exc_info=True)
+        logger.error(f'Error 500: {e}', exc_info=True)
         db.session.rollback()
         return render_template('errors/500.html'), 500
 
     return app
 
 
+def _run_migrations():
+    """Aplica migraciones pendientes al arrancar (seguro: Alembic no re-aplica)."""
+    try:
+        from flask_migrate import upgrade as db_upgrade
+        db_upgrade()
+        logger.info('Migraciones aplicadas correctamente.')
+    except Exception as e:
+        logger.error(f'Error al aplicar migraciones: {e}', exc_info=True)
+
+
 def _promote_admin_from_env():
     email = os.environ.get('ADMIN_EMAIL', '').strip()
     if not email:
         return
-    from app.models.user import User
-    user = User.query.filter_by(email=email).first()
-    if user and not user.is_admin:
-        user.is_admin = True
-        from app.extensions import db
-        db.session.commit()
+    try:
+        from app.models.user import User
+        user = User.query.filter_by(email=email).first()
+        if user and not user.is_admin:
+            user.is_admin = True
+            db.session.commit()
+    except Exception as e:
+        logger.error(f'Error al promover admin: {e}')
