@@ -226,8 +226,8 @@
               <div class="flex-1 bg-dark-500 rounded-full h-1.5 overflow-hidden">
                 <div class="{{ color }} h-full rounded-full" style="width: {{ pct }}%"></div>
               </div>
-              <strong class="text-gray-300 w-8 text-right tabular-nums">
-                {{ '⭐' * (score | int) }}
+              <strong class="text-orange-400 text-xs font-bold shrink-0 w-6 text-right tabular-nums">
+                {{ score | int }}★
               </strong>
             </div>
           {% endfor %}
