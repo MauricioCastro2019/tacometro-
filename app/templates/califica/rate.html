@@ -66,25 +66,25 @@
       <!-- ¿Volverías? -->
       <div>
         <label class="block text-sm font-semibold text-gray-300 mb-2">
-          ¿Volverías? <span class="text-gray-600 font-normal">(opcional)</span>
+          ¿Y volverías? <span class="text-gray-600 font-normal">(opcional)</span>
         </label>
         <div class="flex gap-2">
           <label class="flex-1 cursor-pointer">
             <input type="radio" name="volveria" value="si" class="peer hidden">
-            <span class="flex items-center justify-center gap-1.5 border border-white/10 peer-checked:border-green-500/60 peer-checked:bg-green-500/10 peer-checked:text-green-400 text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition select-none">
-              👍 Sí
+            <span class="flex items-center justify-center border border-white/10 peer-checked:border-green-500/60 peer-checked:bg-green-500/10 peer-checked:text-green-400 text-gray-400 rounded-xl py-2.5 px-1 text-xs font-semibold transition select-none text-center leading-tight min-h-[3rem]">
+              <span id="volveria-si-txt">👍 Sí</span>
             </span>
           </label>
           <label class="flex-1 cursor-pointer">
             <input type="radio" name="volveria" value="no" class="peer hidden">
-            <span class="flex items-center justify-center gap-1.5 border border-white/10 peer-checked:border-red-500/60 peer-checked:bg-red-500/10 peer-checked:text-red-400 text-gray-400 rounded-xl py-2.5 text-sm font-semibold transition select-none">
-              👎 No
+            <span class="flex items-center justify-center border border-white/10 peer-checked:border-red-500/60 peer-checked:bg-red-500/10 peer-checked:text-red-400 text-gray-400 rounded-xl py-2.5 px-1 text-xs font-semibold transition select-none text-center leading-tight min-h-[3rem]">
+              <span id="volveria-no-txt">👎 No</span>
             </span>
           </label>
           <label class="flex-1 cursor-pointer">
             <input type="radio" name="volveria" value="" checked class="peer hidden">
-            <span class="flex items-center justify-center gap-1.5 border border-white/10 peer-checked:border-gray-500/60 peer-checked:bg-white/5 peer-checked:text-gray-300 text-gray-600 rounded-xl py-2.5 text-sm font-semibold transition select-none">
-              🤷 NS/NC
+            <span class="flex items-center justify-center border border-white/10 peer-checked:border-gray-500/60 peer-checked:bg-white/5 peer-checked:text-gray-300 text-gray-600 rounded-xl py-2.5 px-1 text-xs font-semibold transition select-none text-center leading-tight min-h-[3rem]">
+              <span id="volveria-quiza-txt">🤷 Sepa...</span>
             </span>
           </label>
         </div>
@@ -93,10 +93,40 @@
       <!-- ¿Qué pediste? -->
       <div>
         <label class="block text-sm font-semibold text-gray-300 mb-1.5">
-          ¿Qué pediste? <span class="text-gray-600 font-normal">(opcional)</span>
+          🌮 ¿Qué tacos pediste? <span class="text-gray-600 font-normal">(opcional)</span>
         </label>
         <input type="text" name="tacos_probados"
-               placeholder="Ej: Suadero, tripa, 3 tacos con todo"
+               placeholder="Suadero, tripa, 3 con todo..."
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+      </div>
+
+      <!-- Salsas -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-300 mb-1.5">
+          🥣 ¿Cómo estaban las salsas? <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <input type="text" name="salsas_probadas"
+               placeholder="Verde picosa, roja ahumada, guacamole..."
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+      </div>
+
+      <!-- Bebidas -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-300 mb-1.5">
+          🥤 Bebidas <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <input type="text" name="bebidas"
+               placeholder="Agua de horchata, tepache, refresco..."
+               class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+      </div>
+
+      <!-- Postres / extra -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-300 mb-1.5">
+          🍮 ¿Postre o algo extra? <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        <input type="text" name="postres"
+               placeholder="Churros, arroz con leche, flan..."
                class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
       </div>
 
@@ -176,6 +206,21 @@
 const PESOS = { sabor: 0.35, salsa: 0.25, precio_calidad: 0.15, servicio: 0.15, higiene: 0.10 };
 const valores = {};
 
+const VOLVERIA = {
+  neutro: { si: '👍 Sí, volvería',          no: '👎 No volvería',    q: '🤷 Sepa...'          },
+  alto:   { si: '¡Sí, ahuevo! 🔥',          no: 'Nel, paso 😅',      q: 'Hmm, tal vez...'     },
+  medio:  { si: 'Creo que sí 🤔',            no: 'No creo... 😕',     q: 'Depende del día 🤷'  },
+  bajo:   { si: 'Pa sufrir más 😐',          no: 'Nel, DLV 💀',       q: 'A ver si mejora 😒'  },
+};
+
+function actualizarVolveria(score) {
+  const t = score === null ? 'neutro' : score >= 4 ? 'alto' : score >= 2.5 ? 'medio' : 'bajo';
+  const v = VOLVERIA[t];
+  document.getElementById('volveria-si-txt').textContent   = v.si;
+  document.getElementById('volveria-no-txt').textContent   = v.no;
+  document.getElementById('volveria-quiza-txt').textContent = v.q;
+}
+
 function calcScore() {
   const campos = Object.keys(PESOS);
   if (campos.some(k => !valores[k])) return null;
@@ -186,6 +231,7 @@ function actualizarScore() {
   const score = calcScore();
   const el = document.getElementById('live-score');
   el.textContent = score !== null ? score.toFixed(1) : '–';
+  actualizarVolveria(score);
 }
 
 document.querySelectorAll('.star-group').forEach(group => {

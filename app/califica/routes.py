@@ -1,3 +1,4 @@
+import json
 import math
 import logging
 from flask import render_template, redirect, url_for, flash, request, jsonify
@@ -11,6 +12,29 @@ from app.utils.image_upload import upload_image
 from app.utils.slugify import slugify
 
 logger = logging.getLogger(__name__)
+
+ESPECIALIDADES_FORM = [
+    ('Pastor',      '🌮'),
+    ('Suadero',     '🥩'),
+    ('Tripa',       '🌀'),
+    ('Bistec',      '🥩'),
+    ('Arrachera',   '🔥'),
+    ('Costilla',    '🍖'),
+    ('Birria',      '🍲'),
+    ('Guisado',     '🍳'),
+    ('Canasta',     '🧺'),
+    ('Barbacoa',    '🐑'),
+    ('Cabeza',      '🐮'),
+    ('Carnitas',    '🐷'),
+    ('Cecina',      '🥓'),
+    ('Chorizo',     '🌶️'),
+    ('Campechano',  '🌮'),
+    ('Pescado',     '🐟'),
+    ('Mariscos',    '🦐'),
+    ('Vegetariano', '🌱'),
+    ('Variados',    '🌮'),
+    ('Otro',        '❓'),
+]
 
 
 @califica.route('/')
@@ -50,10 +74,36 @@ def nueva_taqueria():
             if foto and foto.filename:
                 foto_url = upload_image(foto)
 
-            cat_ids = request.form.getlist('categorias')
             cats = []
-            if cat_ids:
-                cats = Category.query.filter(Category.id.in_(cat_ids)).all()
+            for esp in request.form.getlist('especialidad'):
+                esp = esp.strip()
+                if not esp:
+                    continue
+                cat = Category.query.filter_by(name=esp).first()
+                if not cat:
+                    cat = Category(name=esp, slug=slugify(esp), icon='')
+                    db.session.add(cat)
+                cats.append(cat)
+
+            otro_texto = request.form.get('otro_texto', '').strip()
+            if otro_texto:
+                cats = [c for c in cats if c.name != 'Otro']
+                cat = Category.query.filter_by(name=otro_texto).first()
+                if not cat:
+                    cat = Category(name=otro_texto, slug=slugify(otro_texto), icon='🌮')
+                    db.session.add(cat)
+                if cat not in cats:
+                    cats.append(cat)
+            else:
+                cats = [c for c in cats if c.name != 'Otro']
+
+            hora_apertura = request.form.get('hora_apertura', '').strip()
+            hora_cierre = request.form.get('hora_cierre', '').strip()
+            _dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+            horario = {}
+            for dia in _dias:
+                if request.form.get(f'dia_{dia}') and hora_apertura and hora_cierre:
+                    horario[dia] = {'abre': hora_apertura, 'cierra': hora_cierre}
 
             lat = lng = None
             try:
@@ -73,6 +123,7 @@ def nueva_taqueria():
                 latitude=lat,
                 longitude=lng,
                 is_active=True,
+                horario=json.dumps(horario) if horario else None,
             )
             place.categories = cats
             db.session.add(place)
@@ -86,10 +137,9 @@ def nueva_taqueria():
             logger.exception('Error al crear taquería desde flujo califica')
             flash('Error al registrar la taquería. Intenta de nuevo.', 'danger')
 
-    categorias = Category.query.order_by(Category.name).all()
     nombre_sugerido = request.args.get('nombre', '')
     return render_template('califica/nueva_taqueria.html',
-                           categorias=categorias,
+                           especialidades=ESPECIALIDADES_FORM,
                            nombre_sugerido=nombre_sugerido)
 
 
@@ -158,6 +208,15 @@ def rate(place_id):
             tacos_probados = (request.form.get('tacos_probados', '').strip() or None)
             if tacos_probados:
                 tacos_probados = tacos_probados[:256]
+            salsas_probadas = (request.form.get('salsas_probadas', '').strip() or None)
+            if salsas_probadas:
+                salsas_probadas = salsas_probadas[:256]
+            bebidas = (request.form.get('bebidas', '').strip() or None)
+            if bebidas:
+                bebidas = bebidas[:128]
+            postres = (request.form.get('postres', '').strip() or None)
+            if postres:
+                postres = postres[:128]
 
             review = Review(
                 user_id=current_user.id if current_user.is_authenticated else None,
@@ -173,6 +232,9 @@ def rate(place_id):
                 volveria=volveria,
                 gasto_aproximado=gasto,
                 tacos_probados=tacos_probados,
+                salsas_probadas=salsas_probadas,
+                bebidas=bebidas,
+                postres=postres,
             )
             db.session.add(review)
             db.session.commit()

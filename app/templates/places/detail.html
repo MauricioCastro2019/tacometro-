@@ -242,15 +242,34 @@
           <p class="text-gray-400 text-sm leading-relaxed">{{ review.comentario }}</p>
         {% endif %}
 
-        {% if review.tacos_probados %}
-          <p class="text-gray-600 text-xs mt-2">Pidió: {{ review.tacos_probados }}</p>
+        {% if review.tacos_probados or review.salsas_probadas or review.bebidas or review.postres %}
+          <div class="mt-2 space-y-0.5">
+            {% if review.tacos_probados %}
+              <p class="text-gray-500 text-xs">🌮 {{ review.tacos_probados }}</p>
+            {% endif %}
+            {% if review.salsas_probadas %}
+              <p class="text-gray-500 text-xs">🥣 {{ review.salsas_probadas }}</p>
+            {% endif %}
+            {% if review.bebidas %}
+              <p class="text-gray-500 text-xs">🥤 {{ review.bebidas }}</p>
+            {% endif %}
+            {% if review.postres %}
+              <p class="text-gray-500 text-xs">🍮 {{ review.postres }}</p>
+            {% endif %}
+          </div>
         {% endif %}
 
         <div class="flex items-center justify-between mt-3">
           <p class="text-gray-700 text-xs">{{ review.created_at.strftime('%d/%m/%Y') }}</p>
           {% if review.volveria is not none %}
             <span class="text-xs {{ 'text-green-500' if review.volveria else 'text-red-500' }}">
-              {{ '👍 Volvería' if review.volveria else '👎 No volvería' }}
+              {% if review.volveria %}
+                {% set pos = ['¡Sí, ahuevo! 🔥', 'Sin duda 🌮', 'Obvio que sí 🤌', '100% vuelvo 🙌'] %}
+                {{ pos[review.id % pos|length] }}
+              {% else %}
+                {% set neg = ['Nel, no vuelvo 🚫', 'DLV, no gracias 💀', 'Me cagó 😤', 'Hazco, no 😬'] %}
+                {{ neg[review.id % neg|length] }}
+              {% endif %}
             </span>
           {% endif %}
         </div>
@@ -322,7 +341,10 @@
     const placeId = btn.dataset.placeId;
     btn.disabled = true;
     try {
-      const res = await fetch(`/places/${placeId}/favorite`, { method: 'POST' });
+      const res = await fetch(`/places/${placeId}/favorite`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+      });
       if (!res.ok) { btn.disabled = false; return; }
       const data = await res.json();
       document.getElementById('fav-icon').textContent  = data.favorited ? '❤️' : '🤍';

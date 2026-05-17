@@ -26,6 +26,7 @@ class Place(db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    horario = db.Column(db.Text, nullable=True)  # JSON: {"lunes": {"abre": "08:00", "cierra": "22:00"}, ...}
 
     # Tipos de taco (many-to-many)
     categories = db.relationship(

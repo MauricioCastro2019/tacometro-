@@ -29,6 +29,9 @@ class Review(db.Model):
     volveria = db.Column(db.Boolean, nullable=True)
     gasto_aproximado = db.Column(db.Float, nullable=True)
     tacos_probados = db.Column(db.String(256), nullable=True)
+    salsas_probadas = db.Column(db.String(256), nullable=True)
+    bebidas = db.Column(db.String(128), nullable=True)
+    postres = db.Column(db.String(128), nullable=True)
 
     # Control
     is_visible = db.Column(db.Boolean, default=True, nullable=False)
