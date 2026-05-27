@@ -17,7 +17,7 @@ def register():
     if form.validate_on_submit():
         user = User(
             username=form.username.data,
-            email=form.email.data.lower()
+            phone=form.phone.data
         )
         user.set_password(form.password.data)
         db.session.add(user)
@@ -36,13 +36,13 @@ def login():
 
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data.lower()).first()
+        user = User.query.filter_by(phone=form.phone.data).first()
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember.data)
             next_page = request.args.get('next')
             flash(f'Bienvenido, {user.username}.', 'success')
             return redirect(next_page or url_for('main.index'))
-        flash('Correo o contraseña incorrectos.', 'danger')
+        flash('Teléfono o contraseña incorrectos.', 'danger')
 
     return render_template('auth/login.html', form=form)
 

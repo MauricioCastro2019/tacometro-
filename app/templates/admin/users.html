@@ -15,7 +15,7 @@
     <thead class="border-b border-white/5">
       <tr class="text-xs text-gray-600 uppercase tracking-wider">
         <th class="text-left px-5 py-3">Usuario</th>
-        <th class="text-left px-5 py-3 hidden sm:table-cell">Email</th>
+        <th class="text-left px-5 py-3 hidden sm:table-cell">Teléfono</th>
         <th class="text-center px-5 py-3 hidden md:table-cell">Reseñas</th>
         <th class="text-center px-5 py-3 hidden md:table-cell">Favoritos</th>
         <th class="text-center px-5 py-3 hidden sm:table-cell">Registro</th>
@@ -33,7 +33,7 @@
               <span class="font-semibold text-gray-200">{{ user.username }}</span>
             </div>
           </td>
-          <td class="px-5 py-3 text-gray-500 hidden sm:table-cell">{{ user.email }}</td>
+          <td class="px-5 py-3 text-gray-500 hidden sm:table-cell">{{ user.phone }}</td>
           <td class="px-5 py-3 text-center hidden md:table-cell">
             <span class="{% if user.reviews.count() > 0 %}text-orange-400 font-bold{% else %}text-gray-700{% endif %}">
               {{ user.reviews.count() }}

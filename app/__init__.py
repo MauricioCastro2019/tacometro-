@@ -88,12 +88,12 @@ def _run_migrations():
 
 
 def _promote_admin_from_env():
-    email = os.environ.get('ADMIN_EMAIL', '').strip()
-    if not email:
+    username = os.environ.get('ADMIN_USERNAME', '').strip()
+    if not username:
         return
     try:
         from app.models.user import User
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(username=username).first()
         if user and not user.is_admin:
             user.is_admin = True
             db.session.commit()

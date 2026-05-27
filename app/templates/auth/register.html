@@ -14,10 +14,10 @@
     <form method="POST" novalidate class="space-y-5">
       {{ form.hidden_tag() }}
 
-      {% macro dark_field(f) %}
+      {% macro dark_field(f, extra='') %}
         <div>
           {{ f.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}
-          {{ f(class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition" + (' border-red-500' if f.errors else '')) }}
+          {{ f(class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition" + (' border-red-500' if f.errors else ''), **({'inputmode':'numeric','maxlength':'10','placeholder':'10 dígitos'} if f.name == 'phone' else {})) }}
           {% for error in f.errors %}
             <p class="text-red-400 text-xs mt-1">{{ error }}</p>
           {% endfor %}
@@ -25,7 +25,7 @@
       {% endmacro %}
 
       {{ dark_field(form.username) }}
-      {{ dark_field(form.email) }}
+      {{ dark_field(form.phone) }}
       {{ dark_field(form.password) }}
       {{ dark_field(form.password2) }}
 
