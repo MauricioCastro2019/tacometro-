@@ -5,6 +5,10 @@
 <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
   <h1 class="text-2xl font-bold text-white">Panel de administración</h1>
   <div class="flex flex-wrap gap-2">
+    <a href="{{ url_for('admin.users_index') }}"
+       class="border border-white/15 hover:border-yellow-500/50 text-gray-400 hover:text-yellow-400 text-sm font-semibold px-4 py-2 rounded-xl transition">
+      👥 Usuarios
+    </a>
     <a href="{{ url_for('admin.suggestions_index') }}"
        class="border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 text-sm font-semibold px-4 py-2 rounded-xl transition">
       💡 Sugerencias
@@ -35,6 +39,64 @@
     </a>
   </div>
 </div>
+
+<!-- Stats -->
+<div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black text-orange-500">{{ total_places }}</p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Taquerías</p>
+  </div>
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black text-orange-500">{{ total_reviews }}</p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Reseñas</p>
+  </div>
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black text-yellow-400">{{ total_users }}</p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Usuarios</p>
+  </div>
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black text-green-400">{{ reviews_today }}</p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Hoy</p>
+  </div>
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black text-gray-600">{{ places_sin_reviews }}</p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Sin reseñas</p>
+  </div>
+</div>
+
+<!-- Reseñas recientes -->
+{% if recent_reviews %}
+<div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden mb-6">
+  <div class="px-5 py-3 border-b border-white/5 flex items-center justify-between">
+    <p class="text-sm font-semibold text-gray-400">Últimas reseñas</p>
+    <a href="{{ url_for('admin.reviews_index') }}" class="text-xs text-orange-400 hover:text-orange-300 transition">Ver todas →</a>
+  </div>
+  <div class="divide-y divide-white/5">
+    {% for r in recent_reviews %}
+      <div class="px-5 py-3 flex items-center gap-4">
+        <span class="text-orange-500 font-black text-lg w-10 shrink-0">{{ r.overall_score }}</span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-semibold text-gray-200 truncate">{{ r.place.name }}</p>
+          <p class="text-xs text-gray-600">{{ r.display_name }} · {{ r.created_at.strftime('%d/%m %H:%M') }}</p>
+        </div>
+        {% if r.comentario %}
+          <p class="text-xs text-gray-500 italic truncate max-w-xs hidden sm:block">"{{ r.comentario[:60] }}{% if r.comentario|length > 60 %}…{% endif %}"</p>
+        {% endif %}
+        <div class="flex items-center gap-2 shrink-0">
+          <form method="POST" action="{{ url_for('admin.review_toggle', review_id=r.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="text-xs {{ 'text-green-400' if r.is_visible else 'text-gray-600' }} hover:text-orange-400 transition"
+                    title="{{ 'Visible' if r.is_visible else 'Oculta' }}">
+              {{ '👁' if r.is_visible else '🚫' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
 <!-- Búsqueda rápida -->
 <div class="relative mb-4">

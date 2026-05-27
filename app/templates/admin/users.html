@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Usuarios · Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <div class="flex items-center gap-3">
+    <a href="{{ url_for('admin.index') }}" class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
+    <h1 class="text-2xl font-bold text-white">Usuarios</h1>
+    <span class="text-sm text-gray-600">{{ users|length }} registrados</span>
+  </div>
+</div>
+
+<div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="border-b border-white/5">
+      <tr class="text-xs text-gray-600 uppercase tracking-wider">
+        <th class="text-left px-5 py-3">Usuario</th>
+        <th class="text-left px-5 py-3 hidden sm:table-cell">Email</th>
+        <th class="text-center px-5 py-3 hidden md:table-cell">Reseñas</th>
+        <th class="text-center px-5 py-3 hidden md:table-cell">Favoritos</th>
+        <th class="text-center px-5 py-3 hidden sm:table-cell">Registro</th>
+        <th class="text-center px-5 py-3">Rol</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-white/5">
+      {% for user in users %}
+        <tr class="hover:bg-dark-600 transition">
+          <td class="px-5 py-3">
+            <div class="flex items-center gap-3">
+              <div class="bg-orange-500/20 text-orange-400 rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold shrink-0">
+                {{ user.username[0].upper() }}
+              </div>
+              <span class="font-semibold text-gray-200">{{ user.username }}</span>
+            </div>
+          </td>
+          <td class="px-5 py-3 text-gray-500 hidden sm:table-cell">{{ user.email }}</td>
+          <td class="px-5 py-3 text-center hidden md:table-cell">
+            <span class="{% if user.reviews.count() > 0 %}text-orange-400 font-bold{% else %}text-gray-700{% endif %}">
+              {{ user.reviews.count() }}
+            </span>
+          </td>
+          <td class="px-5 py-3 text-center text-gray-500 hidden md:table-cell">
+            {{ user.favorites.count() }}
+          </td>
+          <td class="px-5 py-3 text-center text-gray-600 text-xs hidden sm:table-cell">
+            {{ user.created_at.strftime('%d/%m/%Y') }}
+          </td>
+          <td class="px-5 py-3 text-center">
+            {% if user.is_admin %}
+              <span class="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full font-semibold">Admin</span>
+            {% else %}
+              <span class="text-xs text-gray-700">User</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="6" class="px-5 py-10 text-center text-gray-700">No hay usuarios registrados.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

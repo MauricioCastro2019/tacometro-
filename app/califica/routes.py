@@ -1,7 +1,7 @@
 import json
 import math
 import logging
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, redirect, url_for, flash, request, jsonify, session
 from flask_login import current_user
 from app.califica import califica
 from app.extensions import db
@@ -158,6 +158,15 @@ def rate(place_id):
         if existing:
             flash('Ya calificaste esta taquería. Puedes editar tu reseña.', 'info')
             return redirect(url_for('califica.confirmacion', review_id=existing.id))
+    else:
+        anon_id = session.get(f'anon_review_{place.id}')
+        if anon_id:
+            anon_review = db.session.get(Review, anon_id)
+            if anon_review and anon_review.place_id == place.id:
+                flash('Ya calificaste esta taquería desde este dispositivo.', 'info')
+                return redirect(url_for('califica.confirmacion', review_id=anon_id))
+            else:
+                session.pop(f'anon_review_{place.id}', None)
 
     if request.method == 'POST':
         try:
@@ -238,6 +247,11 @@ def rate(place_id):
             )
             db.session.add(review)
             db.session.commit()
+
+            if not current_user.is_authenticated:
+                session[f'anon_review_{place.id}'] = review.id
+                session.modified = True
+
             return redirect(url_for('califica.confirmacion', review_id=review.id))
 
         except Exception:

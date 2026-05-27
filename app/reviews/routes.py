@@ -92,6 +92,31 @@ def edit(review_id):
                 if uploaded:
                     review.foto_comida = uploaded
 
+            # Campos extra
+            volveria_raw = request.form.get('volveria', '')
+            review.volveria = True if volveria_raw == 'si' else (False if volveria_raw == 'no' else None)
+
+            gasto = None
+            try:
+                gasto_s = request.form.get('gasto_aproximado', '').strip()
+                if gasto_s:
+                    gasto = float(gasto_s)
+            except (ValueError, TypeError):
+                pass
+            review.gasto_aproximado = gasto
+
+            tacos = request.form.get('tacos_probados', '').strip() or None
+            review.tacos_probados = tacos[:256] if tacos else None
+
+            salsas = request.form.get('salsas_probadas', '').strip() or None
+            review.salsas_probadas = salsas[:256] if salsas else None
+
+            bebidas = request.form.get('bebidas', '').strip() or None
+            review.bebidas = bebidas[:128] if bebidas else None
+
+            postres = request.form.get('postres', '').strip() or None
+            review.postres = postres[:128] if postres else None
+
             db.session.commit()
             flash('Reseña actualizada.', 'success')
             return redirect(url_for('places.detail', slug=review.place.slug))

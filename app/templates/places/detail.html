@@ -31,6 +31,9 @@
           <p class="text-xs text-gray-500 mt-1">
             {{ place.review_count }} reseña{{ 's' if place.review_count != 1 }}
           </p>
+          {% if gasto_promedio %}
+            <p class="text-xs text-gray-600 mt-0.5">~${{ gasto_promedio | int }} p/p</p>
+          {% endif %}
         </div>
       {% endif %}
     </div>
@@ -98,6 +101,31 @@
     </div>
   </div>
 </div>
+
+<!-- Horario -->
+{% if horario_parsed %}
+  {% set dias_orden = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'] %}
+  {% set dias_label = {'lunes': 'Lun', 'martes': 'Mar', 'miercoles': 'Mié', 'jueves': 'Jue', 'viernes': 'Vie', 'sabado': 'Sáb', 'domingo': 'Dom'} %}
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-5 mb-6">
+    <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">🕐 Horario</p>
+    <div class="grid grid-cols-7 gap-1 text-center">
+      {% for dia in dias_orden %}
+        {% set info = horario_parsed.get(dia) %}
+        <div>
+          <p class="text-xs font-semibold {% if info %}text-gray-300{% else %}text-gray-700{% endif %} mb-1">
+            {{ dias_label[dia] }}
+          </p>
+          {% if info %}
+            <p class="text-xs text-orange-400 leading-tight">{{ info['abre'] }}</p>
+            <p class="text-xs text-gray-500 leading-tight">{{ info['cierra'] }}</p>
+          {% else %}
+            <p class="text-xs text-gray-700">—</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
 
 <!-- Radar + Mini-mapa -->
 {% if radar or (place.latitude and place.longitude) %}

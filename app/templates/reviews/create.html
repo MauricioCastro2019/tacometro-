@@ -64,6 +64,77 @@
         {% endfor %}
       </div>
 
+      <!-- Campos extra solo en edición -->
+      {% if edit_mode %}
+        <!-- ¿Volverías? -->
+        <div class="mb-5">
+          <label class="block text-sm font-semibold text-gray-300 mb-2">¿Y volverías? <span class="text-gray-600 font-normal">(opcional)</span></label>
+          <div class="flex gap-2">
+            {% for val, txt in [('si', '👍 Sí'), ('no', '👎 No'), ('', '🤷 Sepa...')] %}
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="volveria" value="{{ val }}" class="peer hidden"
+                  {% if val == 'si' and review.volveria == true %}checked
+                  {% elif val == 'no' and review.volveria == false %}checked
+                  {% elif val == '' and review.volveria is none %}checked{% endif %}>
+                <span class="flex items-center justify-center border border-white/10
+                  peer-checked:border-orange-500/60 peer-checked:bg-orange-500/10 peer-checked:text-orange-300
+                  text-gray-400 rounded-xl py-2.5 px-1 text-xs font-semibold transition select-none text-center min-h-[3rem]">
+                  {{ txt }}
+                </span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Tacos -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-300 mb-1.5">🌮 ¿Qué tacos pediste? <span class="text-gray-600 font-normal">(opcional)</span></label>
+          <input type="text" name="tacos_probados" maxlength="256"
+                 value="{{ review.tacos_probados or '' }}"
+                 placeholder="Suadero, tripa, 3 con todo..."
+                 class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+        </div>
+
+        <!-- Salsas -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-300 mb-1.5">🥣 ¿Cómo estaban las salsas? <span class="text-gray-600 font-normal">(opcional)</span></label>
+          <input type="text" name="salsas_probadas" maxlength="256"
+                 value="{{ review.salsas_probadas or '' }}"
+                 placeholder="Verde picosa, roja ahumada..."
+                 class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+        </div>
+
+        <!-- Bebidas -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-300 mb-1.5">🥤 Bebidas <span class="text-gray-600 font-normal">(opcional)</span></label>
+          <input type="text" name="bebidas" maxlength="128"
+                 value="{{ review.bebidas or '' }}"
+                 placeholder="Agua de horchata, tepache..."
+                 class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+        </div>
+
+        <!-- Postres -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-300 mb-1.5">🍮 ¿Postre o algo extra? <span class="text-gray-600 font-normal">(opcional)</span></label>
+          <input type="text" name="postres" maxlength="128"
+                 value="{{ review.postres or '' }}"
+                 placeholder="Churros, flan..."
+                 class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+        </div>
+
+        <!-- Gasto -->
+        <div class="mb-5">
+          <label class="block text-sm font-semibold text-gray-300 mb-1.5">Gasto aproximado <span class="text-gray-600 font-normal">(opcional)</span></label>
+          <div class="relative">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 text-sm">$</span>
+            <input type="number" name="gasto_aproximado" min="0" step="5"
+                   value="{{ review.gasto_aproximado | int if review.gasto_aproximado else '' }}"
+                   placeholder="0"
+                   class="w-full bg-dark-600 border border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+          </div>
+        </div>
+      {% endif %}
+
       <!-- Comentario -->
       <div class="mb-5">
         {{ form.comentario.label(class="block text-sm font-medium text-gray-400 mb-1.5") }}

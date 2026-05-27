@@ -35,13 +35,18 @@
   </svg>
   <input id="search"
          type="text"
-         placeholder="Buscar taquería…"
-         class="w-full bg-dark-700 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+         placeholder="Buscar taquería… (Enter para buscar en todo)"
+         value="{{ q }}"
+         class="w-full bg-dark-700 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+  {% if q %}
+    <a href="{{ url_for('places.index', sort=sort) }}"
+       class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-orange-400 transition text-lg leading-none">×</a>
+  {% endif %}
 </div>
 
 <!-- Contador de resultados -->
-<p id="results-count" class="text-xs text-gray-600 mb-4 hidden">
-  <span id="count-num">0</span> taquerías encontradas
+<p id="results-count" class="text-xs text-gray-600 mb-4 {% if not q %}hidden{% endif %}">
+  <span id="count-num">{{ total }}</span> taquería{{ 's' if total != 1 }}{% if q %} para "<strong class="text-orange-400">{{ q }}</strong>"{% endif %}
 </p>
 
 {% if places %}
@@ -152,6 +157,8 @@
 {% endif %}
 
 <script>
+const CSRF_TOKEN = '{{ csrf_token() }}';
+
 // Favoritos en cards
 document.querySelectorAll('.fav-card-btn').forEach(btn => {
   btn.addEventListener('click', async e => {
@@ -159,7 +166,10 @@ document.querySelectorAll('.fav-card-btn').forEach(btn => {
     e.stopPropagation();
     btn.disabled = true;
     try {
-      const res = await fetch(`/places/${btn.dataset.placeId}/favorite`, { method: 'POST' });
+      const res = await fetch(`/places/${btn.dataset.placeId}/favorite`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN }
+      });
       const data = await res.json();
       btn.dataset.faved = data.favorited ? 'true' : 'false';
       btn.querySelector('.fav-icon').textContent = data.favorited ? '❤️' : '🤍';
@@ -170,28 +180,49 @@ document.querySelectorAll('.fav-card-btn').forEach(btn => {
 });
 
 (function () {
-  const search    = document.getElementById('search');
-  const cards     = document.querySelectorAll('.place-card');
-  const noRes     = document.getElementById('no-results');
-  const grid      = document.getElementById('places-grid');
-  const countEl   = document.getElementById('count-num');
-  const countWrap = document.getElementById('results-count');
+  const search     = document.getElementById('search');
+  const cards      = document.querySelectorAll('.place-card');
+  const noRes      = document.getElementById('no-results');
+  const grid       = document.getElementById('places-grid');
+  const countEl    = document.getElementById('count-num');
+  const countWrap  = document.getElementById('results-count');
   const pagination = document.getElementById('pagination');
+  const currentSort = '{{ sort }}';
 
+  // Enter → búsqueda server-side (busca en todas las páginas)
+  search.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    const q = search.value.trim();
+    const url = new URL(window.location.href);
+    if (q) {
+      url.searchParams.set('q', q);
+    } else {
+      url.searchParams.delete('q');
+    }
+    url.searchParams.set('sort', currentSort);
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+  });
+
+  // Input → filtro cliente en tiempo real sobre la página actual
   search.addEventListener('input', e => {
     const query = e.target.value.trim().toLowerCase();
     let visible = 0;
     cards.forEach(card => {
-      const show = card.dataset.name.includes(query);
+      const show = !query || card.dataset.name.includes(query);
       card.style.display = show ? '' : 'none';
       if (show) visible++;
     });
-    countWrap.classList.toggle('hidden', !query);
-    if (query) countEl.textContent = visible;
+    // Solo ocultar paginación si hay filtro activo en cliente
     if (pagination) pagination.classList.toggle('hidden', !!query);
     const allHidden = visible === 0 && cards.length > 0;
     noRes.classList.toggle('hidden', !allHidden);
     if (grid) grid.classList.toggle('hidden', allHidden);
+    // Actualizar contador si no hay búsqueda server-side activa
+    if (!countWrap.textContent.includes('"')) {
+      countWrap.classList.toggle('hidden', !query);
+      if (query) countEl.textContent = visible;
+    }
   });
 })();
 </script>

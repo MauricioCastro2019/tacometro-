@@ -114,6 +114,46 @@
         {{ form.is_active.label(class="text-sm text-gray-400") }}
       </div>
 
+      <!-- Horario -->
+      <div>
+        <label class="block text-sm font-medium text-gray-400 mb-3">
+          🕐 Horario <span class="text-gray-600 font-normal">(opcional)</span>
+        </label>
+        {% set dias_config = [
+          ('lunes',     'Lunes'),
+          ('martes',    'Martes'),
+          ('miercoles', 'Miércoles'),
+          ('jueves',    'Jueves'),
+          ('viernes',   'Viernes'),
+          ('sabado',    'Sábado'),
+          ('domingo',   'Domingo'),
+        ] %}
+        <div class="space-y-2 bg-dark-600 border border-white/10 rounded-xl p-4">
+          {% for key, label in dias_config %}
+            {% set info = horario_parsed.get(key) if horario_parsed else none %}
+            <div class="flex items-center gap-3 flex-wrap">
+              <label class="flex items-center gap-2 w-28 shrink-0 cursor-pointer">
+                <input type="checkbox" name="dia_{{ key }}" id="dia_{{ key }}"
+                       class="accent-orange-500"
+                       {% if info %}checked{% endif %}
+                       onchange="toggleDia('{{ key }}', this.checked)">
+                <span class="text-sm {% if info %}text-gray-200{% else %}text-gray-600{% endif %}"
+                      id="lbl-{{ key }}">{{ label }}</span>
+              </label>
+              <div id="horas-{{ key }}" class="flex items-center gap-2 {% if not info %}opacity-30 pointer-events-none{% endif %}">
+                <input type="time" name="abre_{{ key }}" id="abre_{{ key }}"
+                       value="{{ info['abre'] if info else '08:00' }}"
+                       class="bg-dark-700 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+                <span class="text-gray-600 text-xs">–</span>
+                <input type="time" name="cierra_{{ key }}" id="cierra_{{ key }}"
+                       value="{{ info['cierra'] if info else '22:00' }}"
+                       class="bg-dark-700 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
       <div class="flex gap-3 pt-2">
         {{ form.submit(class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20") }}
         <a href="{{ url_for('admin.index') }}"
@@ -169,5 +209,13 @@
       document.getElementById('image_file_input').value = '';
     }
   });
+
+  function toggleDia(key, checked) {
+    const wrap = document.getElementById('horas-' + key);
+    const lbl  = document.getElementById('lbl-' + key);
+    wrap.classList.toggle('opacity-30', !checked);
+    wrap.classList.toggle('pointer-events-none', !checked);
+    lbl.className = checked ? 'text-sm text-gray-200' : 'text-sm text-gray-600';
+  }
 </script>
 {% endblock %}

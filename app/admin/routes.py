@@ -4,13 +4,17 @@ import time
 import urllib.request
 import urllib.parse
 import json
+from datetime import date
 from flask import render_template, redirect, url_for, flash, abort, request, jsonify
 from flask_login import login_required
+from sqlalchemy import func
 from app.admin import admin
 from app.admin.forms import PlaceForm, ImportForm
 from app.extensions import db
 from app.models.category import Category
 from app.models.place import Place
+from app.models.review import Review
+from app.models.user import User
 from app.utils.decorators import admin_required
 from app.utils.image_upload import upload_image
 from app.utils.slugify import slugify
@@ -25,7 +29,48 @@ def _category_choices():
 @admin_required
 def index():
     places = Place.query.order_by(Place.name).all()
-    return render_template('admin/index.html', places=places)
+
+    total_places  = Place.query.filter_by(is_active=True).count()
+    total_reviews = Review.query.count()
+    total_users   = User.query.count()
+    reviews_today = Review.query.filter(
+        func.date(Review.created_at) == date.today().isoformat()
+    ).count()
+    recent_reviews = (
+        Review.query.order_by(Review.created_at.desc()).limit(8).all()
+    )
+    places_sin_reviews = sum(1 for p in places if p.review_count == 0)
+
+    return render_template('admin/index.html',
+                           places=places,
+                           total_places=total_places,
+                           total_reviews=total_reviews,
+                           total_users=total_users,
+                           reviews_today=reviews_today,
+                           recent_reviews=recent_reviews,
+                           places_sin_reviews=places_sin_reviews)
+
+
+@admin.route('/users')
+@login_required
+@admin_required
+def users_index():
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=users)
+
+
+_DIAS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo']
+
+
+def _parse_horario_form():
+    horario = {}
+    for dia in _DIAS:
+        if request.form.get(f'dia_{dia}'):
+            abre   = request.form.get(f'abre_{dia}', '').strip()
+            cierra = request.form.get(f'cierra_{dia}', '').strip()
+            if abre and cierra:
+                horario[dia] = {'abre': abre, 'cierra': cierra}
+    return json.dumps(horario) if horario else None
 
 
 @admin.route('/places/new', methods=['GET', 'POST'])
@@ -40,7 +85,6 @@ def place_create():
         if Place.query.filter_by(slug=slug).first():
             flash('Ya existe una taquería con ese nombre.', 'danger')
         else:
-            # Imagen: archivo tiene prioridad sobre URL
             image_url = form.image_url.data or None
             if form.image_file.data and form.image_file.data.filename:
                 uploaded = upload_image(form.image_file.data)
@@ -57,6 +101,7 @@ def place_create():
                 phone=form.phone.data,
                 image_url=image_url,
                 is_active=form.is_active.data,
+                horario=_parse_horario_form(),
             )
             place.categories = Category.query.filter(
                 Category.id.in_(form.category_ids.data)
@@ -66,7 +111,8 @@ def place_create():
             flash(f'Taquería "{place.name}" creada.', 'success')
             return redirect(url_for('admin.index'))
 
-    return render_template('admin/place_form.html', form=form, title='Nueva taquería')
+    return render_template('admin/place_form.html', form=form, title='Nueva taquería',
+                           horario_parsed={})
 
 
 @admin.route('/places/<int:place_id>/edit', methods=['GET', 'POST'])
@@ -86,7 +132,6 @@ def place_edit(place_id):
         if existing and existing.id != place.id:
             flash('Ya existe una taquería con ese nombre.', 'danger')
         else:
-            # Imagen: archivo tiene prioridad sobre URL
             image_url = form.image_url.data or None
             if form.image_file.data and form.image_file.data.filename:
                 uploaded = upload_image(form.image_file.data)
@@ -102,6 +147,7 @@ def place_edit(place_id):
             place.phone = form.phone.data
             place.image_url = image_url
             place.is_active = form.is_active.data
+            place.horario = _parse_horario_form()
             place.categories = Category.query.filter(
                 Category.id.in_(form.category_ids.data)
             ).all()
@@ -109,7 +155,15 @@ def place_edit(place_id):
             flash(f'Taquería "{place.name}" actualizada.', 'success')
             return redirect(url_for('admin.index'))
 
-    return render_template('admin/place_form.html', form=form, title='Editar taquería', place=place)
+    horario_parsed = {}
+    if place.horario:
+        try:
+            horario_parsed = json.loads(place.horario)
+        except (ValueError, TypeError):
+            pass
+
+    return render_template('admin/place_form.html', form=form, title='Editar taquería',
+                           place=place, horario_parsed=horario_parsed)
 
 
 @admin.route('/places/<int:place_id>/delete', methods=['POST'])

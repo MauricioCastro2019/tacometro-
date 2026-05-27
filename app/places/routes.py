@@ -1,3 +1,4 @@
+import json
 from flask import render_template, abort, jsonify, request
 from flask_login import current_user, login_required
 from app.places import places
@@ -13,8 +14,12 @@ PER_PAGE = 24
 def index():
     sort  = request.args.get('sort', 'score')
     page  = request.args.get('page', 1, type=int)
+    q     = request.args.get('q', '').strip()
 
-    all_places = Place.query.filter_by(is_active=True).all()
+    base_query = Place.query.filter_by(is_active=True)
+    if q:
+        base_query = base_query.filter(Place.name.ilike(f'%{q}%'))
+    all_places = base_query.all()
 
     if sort == 'name':
         all_places.sort(key=lambda p: p.name.lower())
@@ -46,7 +51,8 @@ def index():
                            sort=sort,
                            page=page,
                            total_pages=total_pages,
-                           total=total)
+                           total=total,
+                           q=q)
 
 
 @places.route('/<slug>')
@@ -76,6 +82,18 @@ def detail(slug):
         except Exception:
             radar = None
 
+    # Gasto promedio
+    gastos = [r.gasto_aproximado for r in reviews if r.gasto_aproximado and r.gasto_aproximado > 0]
+    gasto_promedio = round(sum(gastos) / len(gastos)) if gastos else None
+
+    # Horario parseado
+    horario_parsed = None
+    if place.horario:
+        try:
+            horario_parsed = json.loads(place.horario)
+        except (ValueError, TypeError):
+            pass
+
     # Taquerías similares (misma categoría, excluye la actual)
     similar = []
     if place.categories:
@@ -103,7 +121,9 @@ def detail(slug):
 
     return render_template('places/detail.html', place=place, reviews=reviews,
                            is_fav=is_fav, user_review=user_review,
-                           radar=radar, similar=similar)
+                           radar=radar, similar=similar,
+                           gasto_promedio=gasto_promedio,
+                           horario_parsed=horario_parsed)
 
 
 @places.route('/<int:place_id>/favorite', methods=['POST'])
