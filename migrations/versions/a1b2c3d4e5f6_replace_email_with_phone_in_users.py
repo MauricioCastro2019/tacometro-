@@ -16,13 +16,27 @@ depends_on = None
 
 
 def upgrade():
-    # Asignar teléfono único a usuarios existentes usando su id como placeholder
-    op.execute(
-        "UPDATE users SET phone = printf('%010d', id) WHERE phone IS NULL OR phone = ''"
-    )
+    bind = op.get_bind()
+    dialect = bind.dialect.name
 
+    # Agregar columna phone si no existe (en SQLite ya existe por migraciones previas fallidas)
+    inspector = sa.inspect(bind)
+    existing_cols = [c['name'] for c in inspector.get_columns('users')]
+    if 'phone' not in existing_cols:
+        with op.batch_alter_table('users', schema=None) as batch_op:
+            batch_op.add_column(sa.Column('phone', sa.String(10), nullable=True))
+
+    # Asignar teléfono placeholder único por usuario (cross-db)
+    if dialect == 'postgresql':
+        op.execute("UPDATE users SET phone = lpad(id::text, 10, '0') WHERE phone IS NULL OR phone = ''")
+    else:
+        op.execute("UPDATE users SET phone = printf('%010d', id) WHERE phone IS NULL OR phone = ''")
+
+    # Eliminar email e índice; hacer phone NOT NULL + unique
     with op.batch_alter_table('users', schema=None) as batch_op:
-        batch_op.drop_index('ix_users_email')
+        existing_indexes = [i['name'] for i in inspector.get_indexes('users')]
+        if 'ix_users_email' in existing_indexes:
+            batch_op.drop_index('ix_users_email')
         batch_op.drop_column('email')
         batch_op.alter_column('phone',
                               existing_type=sa.String(10),
@@ -32,6 +46,9 @@ def upgrade():
 
 
 def downgrade():
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.drop_index('ix_users_phone')
         batch_op.drop_constraint('uq_users_phone', type_='unique')
@@ -40,7 +57,10 @@ def downgrade():
                               nullable=True)
         batch_op.add_column(sa.Column('email', sa.String(120), nullable=True))
 
-    op.execute("UPDATE users SET email = phone || '@placeholder.com' WHERE email IS NULL")
+    if dialect == 'postgresql':
+        op.execute("UPDATE users SET email = phone || '@placeholder.com' WHERE email IS NULL")
+    else:
+        op.execute("UPDATE users SET email = phone || '@placeholder.com' WHERE email IS NULL")
 
     with op.batch_alter_table('users', schema=None) as batch_op:
         batch_op.alter_column('email', existing_type=sa.String(120), nullable=False)
