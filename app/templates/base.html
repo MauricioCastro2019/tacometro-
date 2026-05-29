@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Tacómetro{% endblock %}</title>
   <meta name="description" content="{% block meta_description %}Califica y descubre los mejores tacos de León, Guanajuato.{% endblock %}">
+  <!-- Open Graph / WhatsApp / redes sociales -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tacómetro">
+  <meta property="og:title" content="{% block og_title %}Tacómetro · Los mejores tacos de León{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}El ranking callejero más honesto de León, Guanajuato. Descubre y califica taquerías.{% endblock %}">
+  <meta property="og:url" content="{% block og_url %}{{ request.url }}{% endblock %}">
+  <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='img/logo.png', _external=True) }}{% endblock %}">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌮</text></svg>">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -74,6 +82,10 @@
              class="text-gray-400 hover:text-orange-400 transition">
             {{ current_user.username }}
           </a>
+          {% if current_user.owned_places %}
+            <a href="{{ url_for('owner.index') }}"
+               class="text-gray-400 hover:text-orange-400 transition">Mi taquería</a>
+          {% endif %}
           {% if current_user.is_admin %}
             <a href="{{ url_for('admin.index') }}"
                class="text-gray-400 hover:text-orange-400 transition">Admin</a>
@@ -129,6 +141,12 @@
              class="text-gray-300 hover:text-orange-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition">
             👤 {{ current_user.username }}
           </a>
+          {% if current_user.owned_places %}
+            <a href="{{ url_for('owner.index') }}"
+               class="text-gray-300 hover:text-orange-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition">
+              🏪 Mi taquería
+            </a>
+          {% endif %}
           {% if current_user.is_admin %}
             <a href="{{ url_for('admin.index') }}"
                class="text-gray-300 hover:text-orange-400 hover:bg-dark-700 px-3 py-2.5 rounded-xl transition">

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Solicitudes de dueño · Admin · Tacómetro{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ url_for('admin.index') }}"
+     class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
+  <h1 class="text-2xl font-bold text-white">Solicitudes de dueño</h1>
+</div>
+
+<!-- Pendientes -->
+<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+  Pendientes
+  {% if pending %}<span class="text-orange-500">({{ pending|length }})</span>{% endif %}
+</h2>
+
+{% if pending %}
+  <div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden mb-8">
+    <div class="divide-y divide-white/5">
+      {% for claim in pending %}
+        <div class="px-5 py-4 flex items-start gap-4 flex-wrap">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="font-bold text-gray-100">{{ claim.user.username }}</span>
+              <span class="text-gray-600 text-xs">→</span>
+              <a href="{{ url_for('places.detail', slug=claim.place.slug) }}"
+                 target="_blank"
+                 class="font-semibold text-orange-400 hover:text-orange-300 transition">
+                {{ claim.place.name }}
+              </a>
+              {% if claim.place.owner_id %}
+                <span class="text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">
+                  ya tiene dueño
+                </span>
+              {% endif %}
+            </div>
+            <p class="text-gray-600 text-xs">
+              📱 {{ claim.user.phone }} · Solicitado {{ claim.created_at.strftime('%d/%m/%Y %H:%M') }}
+            </p>
+            {% if claim.message %}
+              <p class="text-gray-400 text-sm mt-1 italic">"{{ claim.message }}"</p>
+            {% endif %}
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <form method="POST" action="{{ url_for('admin.claim_approve', claim_id=claim.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 font-semibold px-4 py-2 rounded-xl transition text-sm">
+                ✓ Aprobar
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('admin.claim_reject', claim_id=claim.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="bg-red-500/10 hover:bg-red-500/20 text-red-400/70 border border-red-500/20 font-semibold px-4 py-2 rounded-xl transition text-sm">
+                ✗ Rechazar
+              </button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <div class="border border-white/5 rounded-2xl p-8 text-center text-gray-700 mb-8">
+    <p>No hay solicitudes pendientes.</p>
+  </div>
+{% endif %}
+
+<!-- Resueltas -->
+{% if resolved %}
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Historial reciente</h2>
+  <div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden">
+    <div class="divide-y divide-white/5">
+      {% for claim in resolved %}
+        <div class="px-5 py-3 flex items-center gap-4">
+          <span class="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0
+            {% if claim.status == 'approved' %}bg-green-500/15 text-green-400 border border-green-500/30
+            {% else %}bg-red-500/10 text-red-400/70 border border-red-500/20{% endif %}">
+            {{ '✓ Aprobada' if claim.status == 'approved' else '✗ Rechazada' }}
+          </span>
+          <span class="font-semibold text-gray-300 text-sm">{{ claim.user.username }}</span>
+          <span class="text-gray-600 text-xs">→</span>
+          <span class="text-gray-400 text-sm truncate">{{ claim.place.name }}</span>
+          <span class="text-gray-700 text-xs ml-auto shrink-0">{{ claim.created_at.strftime('%d/%m/%Y') }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

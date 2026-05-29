@@ -46,6 +46,13 @@ def create_app(config_name=None):
     from app.califica import califica as califica_bp
     app.register_blueprint(califica_bp, url_prefix='/califica')
 
+    from app.owner import owner as owner_bp
+    app.register_blueprint(owner_bp, url_prefix='/mi-taqueria')
+
+    # Utilidades disponibles en todos los templates
+    from app.utils import esta_abierto
+    app.jinja_env.globals['esta_abierto'] = esta_abierto
+
     # Correr migraciones y setup inicial al arrancar
     with app.app_context():
         _run_migrations()

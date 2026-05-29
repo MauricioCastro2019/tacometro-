@@ -10,6 +10,7 @@ from app.models.review import Review
 from app.models.category import Category
 from app.utils.image_upload import upload_image
 from app.utils.slugify import slugify
+from app.utils.decorators import rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +145,7 @@ def nueva_taqueria():
 
 
 @califica.route('/rate/<int:place_id>', methods=['GET', 'POST'])
+@rate_limit(5, 300)
 def rate(place_id):
     """Paso 3: Calificar experiencia."""
     place = db.session.get(Place, place_id)

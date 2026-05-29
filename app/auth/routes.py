@@ -1,3 +1,4 @@
+from urllib.parse import urlparse, urljoin
 from flask import render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
 from app.auth import auth
@@ -5,6 +6,12 @@ from app.auth.forms import RegisterForm, LoginForm
 from app.extensions import db
 from app.models.user import User
 from app.utils.decorators import rate_limit
+
+
+def _is_safe_redirect(target):
+    ref = urlparse(request.host_url)
+    test = urlparse(urljoin(request.host_url, target))
+    return test.scheme in ('http', 'https') and ref.netloc == test.netloc
 
 
 @auth.route('/register', methods=['GET', 'POST'])
@@ -40,6 +47,8 @@ def login():
         if user and user.check_password(form.password.data):
             login_user(user, remember=form.remember.data)
             next_page = request.args.get('next')
+            if next_page and not _is_safe_redirect(next_page):
+                next_page = None
             flash(f'Bienvenido, {user.username}.', 'success')
             return redirect(next_page or url_for('main.index'))
         flash('Teléfono o contraseña incorrectos.', 'danger')

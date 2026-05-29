@@ -41,6 +41,9 @@ def index():
     )
     places_sin_reviews = sum(1 for p in places if p.review_count == 0)
 
+    from app.models.claim import PlaceClaim
+    pending_claims = PlaceClaim.query.filter_by(status='pending').count()
+
     return render_template('admin/index.html',
                            places=places,
                            total_places=total_places,
@@ -48,7 +51,8 @@ def index():
                            total_users=total_users,
                            reviews_today=reviews_today,
                            recent_reviews=recent_reviews,
-                           places_sin_reviews=places_sin_reviews)
+                           places_sin_reviews=places_sin_reviews,
+                           pending_claims=pending_claims)
 
 
 @admin.route('/users')
@@ -510,3 +514,66 @@ def suggestion_reject(sug_id):
 def geocode_status_json(task_id):
     status = _geocode_status.get(task_id, {})
     return jsonify(status)
+
+
+@admin.route('/claims')
+@login_required
+@admin_required
+def claims_index():
+    from app.models.claim import PlaceClaim
+    pending = (
+        PlaceClaim.query
+        .filter_by(status='pending')
+        .order_by(PlaceClaim.created_at.asc())
+        .all()
+    )
+    resolved = (
+        PlaceClaim.query
+        .filter(PlaceClaim.status != 'pending')
+        .order_by(PlaceClaim.created_at.desc())
+        .limit(30)
+        .all()
+    )
+    return render_template('admin/claims.html', pending=pending, resolved=resolved)
+
+
+@admin.route('/claims/<int:claim_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def claim_approve(claim_id):
+    from app.models.claim import PlaceClaim
+    claim = db.session.get(PlaceClaim, claim_id) or abort(404)
+    claim.status = 'approved'
+    claim.place.owner_id = claim.user_id
+    # Rechazar otras solicitudes pendientes para el mismo lugar
+    PlaceClaim.query.filter(
+        PlaceClaim.place_id == claim.place_id,
+        PlaceClaim.id != claim.id,
+        PlaceClaim.status == 'pending',
+    ).update({'status': 'rejected'})
+    db.session.commit()
+    flash(f'{claim.user.username} es ahora dueño de "{claim.place.name}".', 'success')
+    return redirect(url_for('admin.claims_index'))
+
+
+@admin.route('/claims/<int:claim_id>/reject', methods=['POST'])
+@login_required
+@admin_required
+def claim_reject(claim_id):
+    from app.models.claim import PlaceClaim
+    claim = db.session.get(PlaceClaim, claim_id) or abort(404)
+    claim.status = 'rejected'
+    db.session.commit()
+    flash('Solicitud rechazada.', 'info')
+    return redirect(url_for('admin.claims_index'))
+
+
+@admin.route('/places/<int:place_id>/remove-owner', methods=['POST'])
+@login_required
+@admin_required
+def place_remove_owner(place_id):
+    place = db.session.get(Place, place_id) or abort(404)
+    place.owner_id = None
+    db.session.commit()
+    flash(f'Dueño removido de "{place.name}".', 'success')
+    return redirect(url_for('admin.place_edit', place_id=place.id))

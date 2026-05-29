@@ -4,5 +4,6 @@ from app.models.place import Place
 from app.models.review import Review
 from app.models.favorite import Favorite
 from app.models.suggestion import Suggestion
+from app.models.claim import PlaceClaim
 
-__all__ = ['User', 'Category', 'Place', 'Review', 'Favorite', 'Suggestion']
+__all__ = ['User', 'Category', 'Place', 'Review', 'Favorite', 'Suggestion', 'PlaceClaim']

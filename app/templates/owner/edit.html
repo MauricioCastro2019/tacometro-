@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}{{ title }} · Admin · Tacómetro{% endblock %}
+{% block title %}Editar · {{ place.name }} · Tacómetro{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto">
   <div class="flex items-center gap-3 mb-6">
-    <a href="{{ url_for('admin.index') }}"
-       class="text-gray-600 hover:text-orange-400 text-sm transition">← Admin</a>
-    <h1 class="text-2xl font-bold text-white">{{ title }}</h1>
+    <a href="{{ url_for('owner.dashboard', slug=place.slug) }}"
+       class="text-gray-600 hover:text-orange-400 text-sm transition">← Panel</a>
+    <h1 class="text-2xl font-bold text-white">Editar información</h1>
   </div>
 
   <div class="bg-dark-700 border border-white/5 rounded-2xl p-6">
@@ -37,7 +37,7 @@
 
       {{ df(form.phone) }}
 
-      <!-- Tipos de taco (multi-select chips) -->
+      <!-- Tipos de taco -->
       <div>
         <label class="block text-sm font-medium text-gray-400 mb-2">
           Tipos de taco
@@ -50,15 +50,12 @@
           {% set selected = form.category_ids.data or [] %}
           {% for value, label in form.category_ids.choices %}
             <label class="chip-label cursor-pointer select-none">
-              <input
-                type="checkbox"
-                name="category_ids"
-                value="{{ value }}"
-                class="sr-only chip-input"
-                {% if value in selected %}checked{% endif %}
-              >
+              <input type="checkbox" name="category_ids" value="{{ value }}"
+                     class="sr-only chip-input"
+                     {% if value in selected %}checked{% endif %}>
               <span class="chip-span inline-block px-3 py-1.5 rounded-full border text-sm font-medium transition-all
-                           {% if value in selected %}bg-orange-500 border-orange-500 text-white{% else %}border-white/15 text-gray-400 hover:border-orange-400 hover:text-orange-300{% endif %}">
+                           {% if value in selected %}bg-orange-500 border-orange-500 text-white
+                           {% else %}border-white/15 text-gray-400 hover:border-orange-400 hover:text-orange-300{% endif %}">
                 {{ label }}
               </span>
             </label>
@@ -69,11 +66,9 @@
       <!-- Imagen -->
       <div>
         <label class="block text-sm font-medium text-gray-400 mb-2">Imagen</label>
-
-        <!-- Preview -->
-        <div id="img-preview-wrap" class="{% if not place or not place.image_url %}hidden{% endif %} mb-3">
+        <div id="img-preview-wrap" class="{% if not place.image_url %}hidden{% endif %} mb-3">
           <img id="img-preview"
-               src="{{ place.image_url if place and place.image_url else '' }}"
+               src="{{ place.image_url or '' }}"
                alt="Preview"
                class="w-full h-48 object-cover rounded-xl">
           <button type="button" onclick="clearImage()"
@@ -81,10 +76,8 @@
             × Quitar imagen
           </button>
         </div>
-
-        <!-- Botón cámara / galería -->
         <label for="image_file_input"
-               class="flex items-center gap-3 bg-dark-600 border border-white/10 hover:border-orange-500/60 rounded-xl px-4 py-3 cursor-pointer transition mb-2 active:scale-[0.99]">
+               class="flex items-center gap-3 bg-dark-600 border border-white/10 hover:border-orange-500/60 rounded-xl px-4 py-3 cursor-pointer transition mb-2">
           <span class="text-2xl">📷</span>
           <div>
             <span class="text-sm font-medium text-gray-300">Tomar foto o elegir imagen</span>
@@ -92,15 +85,12 @@
           </div>
         </label>
         <input type="file" id="image_file_input" name="image_file"
-               accept="image/*"
-               class="hidden"
+               accept="image/*" class="hidden"
                onchange="previewSelected(this)">
-
-        <!-- URL alternativa -->
         <div class="relative mt-2">
           {{ form.image_url(
             id="image_url_input",
-            class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition pr-8",
+            class="w-full bg-dark-600 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition",
             placeholder="O pega una URL de imagen..."
           ) }}
         </div>
@@ -154,41 +144,9 @@
         </div>
       </div>
 
-      <!-- Dueño asignado -->
-      {% if place %}
-        <div class="bg-dark-600 border border-white/10 rounded-xl p-4">
-          <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Dueño verificado</p>
-          {% if place.owner %}
-            <div class="flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <span class="text-sm font-semibold text-green-400">✓ {{ place.owner.username }}</span>
-                <span class="text-gray-600 text-xs ml-2">{{ place.owner.phone }}</span>
-              </div>
-              <form method="POST" action="{{ url_for('admin.place_remove_owner', place_id=place.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit"
-                        class="text-xs text-red-400/60 hover:text-red-400 transition"
-                        onclick="return confirm('¿Quitar a {{ place.owner.username }} como dueño?')">
-                  Quitar dueño
-                </button>
-              </form>
-            </div>
-          {% else %}
-            <p class="text-gray-600 text-sm italic">Sin dueño asignado.</p>
-            {% set pending_claim = place.claims.filter_by(status='pending').first() %}
-            {% if pending_claim %}
-              <p class="text-yellow-400/70 text-xs mt-1">
-                ⏳ {{ pending_claim.user.username }} tiene una solicitud pendiente —
-                <a href="{{ url_for('admin.claims_index') }}" class="underline hover:text-yellow-400 transition">revisar</a>
-              </p>
-            {% endif %}
-          {% endif %}
-        </div>
-      {% endif %}
-
       <div class="flex gap-3 pt-2">
         {{ form.submit(class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-2.5 rounded-xl transition shadow-lg shadow-orange-500/20") }}
-        <a href="{{ url_for('admin.index') }}"
+        <a href="{{ url_for('owner.dashboard', slug=place.slug) }}"
            class="border border-white/15 hover:border-white/30 text-gray-400 hover:text-white font-semibold px-6 py-2.5 rounded-xl transition">
           Cancelar
         </a>
@@ -198,11 +156,9 @@
 </div>
 
 <script>
-  // Chips: toggle visual state on click
   document.querySelectorAll('.chip-label').forEach(label => {
     const input = label.querySelector('.chip-input');
     const span  = label.querySelector('.chip-span');
-
     function sync() {
       if (input.checked) {
         span.classList.remove('border-white/15', 'text-gray-400', 'hover:border-orange-400', 'hover:text-orange-300');
@@ -213,10 +169,9 @@
       }
     }
     input.addEventListener('change', sync);
-    sync(); // initialize
+    sync();
   });
 
-  // Image preview
   function previewSelected(input) {
     if (!input.files || !input.files[0]) return;
     const reader = new FileReader();
@@ -235,11 +190,8 @@
     document.getElementById('image_url_input').value = '';
   }
 
-  // If URL field changes, clear file input
-  document.getElementById('image_url_input').addEventListener('input', function() {
-    if (this.value) {
-      document.getElementById('image_file_input').value = '';
-    }
+  document.getElementById('image_url_input').addEventListener('input', function () {
+    if (this.value) document.getElementById('image_file_input').value = '';
   });
 
   function toggleDia(key, checked) {

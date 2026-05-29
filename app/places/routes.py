@@ -111,6 +111,7 @@ def detail(slug):
 
     is_fav = False
     user_review = None
+    user_claim = None
     if current_user.is_authenticated:
         is_fav = Favorite.query.filter_by(
             user_id=current_user.id, place_id=place.id
@@ -118,12 +119,20 @@ def detail(slug):
         user_review = Review.query.filter_by(
             user_id=current_user.id, place_id=place.id
         ).first()
+        from app.models.claim import PlaceClaim
+        user_claim = (
+            PlaceClaim.query
+            .filter_by(place_id=place.id, user_id=current_user.id)
+            .order_by(PlaceClaim.created_at.desc())
+            .first()
+        )
 
     return render_template('places/detail.html', place=place, reviews=reviews,
                            is_fav=is_fav, user_review=user_review,
                            radar=radar, similar=similar,
                            gasto_promedio=gasto_promedio,
-                           horario_parsed=horario_parsed)
+                           horario_parsed=horario_parsed,
+                           user_claim=user_claim)
 
 
 @places.route('/<int:place_id>/favorite', methods=['POST'])

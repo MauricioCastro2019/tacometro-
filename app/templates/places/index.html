@@ -89,7 +89,30 @@
                   {{ cat.name }}
                 </span>
               {% endfor %}
+              {% if place.horario %}
+                {% set abierto = esta_abierto(place.horario) %}
+                {% if abierto is not none %}
+                  <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
+                    {% if abierto %}bg-green-500/10 text-green-400 border border-green-500/20
+                    {% else %}bg-white/5 text-gray-600 border border-white/10{% endif %}">
+                    <span class="w-1.5 h-1.5 rounded-full {% if abierto %}bg-green-400{% else %}bg-gray-600{% endif %}"></span>
+                    {{ 'Abierto' if abierto else 'Cerrado' }}
+                  </span>
+                {% endif %}
+              {% endif %}
             </div>
+          {% elif place.horario %}
+            {% set abierto = esta_abierto(place.horario) %}
+            {% if abierto is not none %}
+              <div class="mt-2">
+                <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full
+                  {% if abierto %}bg-green-500/10 text-green-400 border border-green-500/20
+                  {% else %}bg-white/5 text-gray-600 border border-white/10{% endif %}">
+                  <span class="w-1.5 h-1.5 rounded-full {% if abierto %}bg-green-400{% else %}bg-gray-600{% endif %}"></span>
+                  {{ 'Abierto' if abierto else 'Cerrado' }}
+                </span>
+              </div>
+            {% endif %}
           {% endif %}
 
           <div class="mt-auto pt-3 flex items-center justify-between">

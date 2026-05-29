@@ -27,6 +27,8 @@ class Place(db.Model):
     longitude = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     horario = db.Column(db.Text, nullable=True)  # JSON: {"lunes": {"abre": "08:00", "cierra": "22:00"}, ...}
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    owner = db.relationship('User', backref='owned_places', foreign_keys=[owner_id])
 
     # Tipos de taco (many-to-many)
     categories = db.relationship(

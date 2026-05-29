@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+{% block title %}Panel · {{ place.name }} · Tacómetro{% endblock %}
+
+{% block content %}
+
+<!-- Header -->
+<div class="flex items-start justify-between gap-4 mb-6 flex-wrap">
+  <div>
+    <p class="text-xs text-gray-600 uppercase tracking-wider font-semibold mb-1">Panel de dueño</p>
+    <h1 class="text-2xl font-black text-white leading-tight">{{ place.name }}</h1>
+    {% if place.address %}
+      <p class="text-gray-500 text-sm mt-1">📍 {{ place.address }}</p>
+    {% endif %}
+    {% if not place.is_active %}
+      <span class="inline-flex items-center gap-1.5 text-xs font-semibold mt-2 px-2.5 py-1 rounded-full bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">
+        ⚠️ Taquería inactiva (no visible al público)
+      </span>
+    {% endif %}
+  </div>
+  <div class="flex gap-2 flex-wrap shrink-0">
+    <a href="{{ url_for('places.detail', slug=place.slug) }}"
+       target="_blank"
+       class="border border-white/15 hover:border-orange-500/50 text-gray-400 hover:text-orange-400 font-semibold px-4 py-2 rounded-xl transition text-sm">
+      Ver página ↗
+    </a>
+    <a href="{{ url_for('owner.edit', slug=place.slug) }}"
+       class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-xl transition text-sm">
+      ✏️ Editar información
+    </a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black text-orange-500">{{ total }}</p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Reseñas</p>
+  </div>
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black {{ 'text-orange-500' if avg else 'text-gray-700' }}">
+      {{ avg if avg else '—' }}
+    </p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Promedio</p>
+  </div>
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black {{ 'text-green-400' if pct_volveria is not none else 'text-gray-700' }}">
+      {% if pct_volveria is not none %}{{ pct_volveria }}%{% else %}—{% endif %}
+    </p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Volvería</p>
+  </div>
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-4 text-center">
+    <p class="text-3xl font-black {{ 'text-yellow-400' if gasto_prom else 'text-gray-700' }}">
+      {% if gasto_prom %}${{ gasto_prom }}{% else %}—{% endif %}
+    </p>
+    <p class="text-xs text-gray-600 mt-1 uppercase tracking-wider">Gasto prom.</p>
+  </div>
+</div>
+
+{% if criterios or total > 0 %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+
+  <!-- Criterios -->
+  {% if criterios %}
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+    <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-4">Promedio por criterio</p>
+    <div class="space-y-3">
+      {% for label, score in [
+        ('Sabor',      criterios['Sabor']),
+        ('Salsa',      criterios['Salsa']),
+        ('Servicio',   criterios['Servicio']),
+        ('Precio/cal.',criterios['Precio/cal.']),
+        ('Higiene',    criterios['Higiene']),
+      ] %}
+        {% set pct = (score / 5 * 100) | int %}
+        {% set color = 'bg-green-500' if score >= 4 else ('bg-orange-400' if score >= 3 else 'bg-red-500') %}
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-gray-400 w-24 shrink-0 text-xs">{{ label }}</span>
+          <div class="flex-1 bg-dark-500 rounded-full h-2 overflow-hidden">
+            <div class="{{ color }} h-full rounded-full" style="width:{{ pct }}%"></div>
+          </div>
+          <span class="text-orange-400 font-bold w-8 text-right tabular-nums shrink-0 text-sm">{{ score }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Tendencia -->
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+    <p class="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-4">Tendencia (8 semanas)</p>
+    {% if total > 0 %}
+      <div class="relative" style="height:180px">
+        <canvas id="trend-chart"></canvas>
+      </div>
+    {% else %}
+      <div class="flex items-center justify-center h-44 text-gray-700 text-sm italic">
+        Sin reseñas aún
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endif %}
+
+<!-- Últimas reseñas -->
+<h2 class="text-lg font-bold text-gray-300 mb-3">
+  Últimas reseñas
+  {% if total %}<span class="text-gray-600 font-normal text-sm">({{ total }} en total)</span>{% endif %}
+</h2>
+
+{% if recent_reviews %}
+  <div class="bg-dark-700 border border-white/5 rounded-2xl overflow-hidden mb-4">
+    <div class="divide-y divide-white/5">
+      {% for r in recent_reviews %}
+        <div class="px-5 py-4 flex items-start gap-3">
+          <div class="bg-orange-500/20 text-orange-400 font-bold rounded-full w-9 h-9 flex items-center justify-center text-sm shrink-0">
+            {{ r.display_name[0].upper() }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+              <span class="text-sm font-semibold text-gray-200">{{ r.display_name }}</span>
+              <span class="text-orange-500 font-black">{{ r.overall_score }}</span>
+              {% if r.volveria is not none %}
+                <span class="text-xs {{ 'text-green-500' if r.volveria else 'text-red-400/70' }}">
+                  {{ '✓ Volvería' if r.volveria else '✗ No volvería' }}
+                </span>
+              {% endif %}
+              <span class="text-gray-700 text-xs ml-auto">{{ r.created_at.strftime('%d/%m/%Y') }}</span>
+            </div>
+            {% if r.comentario %}
+              <p class="text-gray-500 text-sm">"{{ r.comentario }}"</p>
+            {% endif %}
+            {% if r.tacos_probados %}
+              <p class="text-gray-600 text-xs mt-0.5">🌮 {{ r.tacos_probados }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% if total > 5 %}
+    <a href="{{ url_for('places.detail', slug=place.slug) }}"
+       class="text-sm text-orange-400 hover:text-orange-300 transition">
+      Ver todas las reseñas en la página pública →
+    </a>
+  {% endif %}
+{% else %}
+  <div class="border border-white/5 rounded-2xl p-10 text-center text-gray-600">
+    <p class="text-4xl mb-3">🌮</p>
+    <p class="text-gray-500 font-medium">Tu taquería aún no tiene reseñas.</p>
+    <p class="text-xs mt-1">Comparte tu página para que los clientes te califiquen.</p>
+    <a href="{{ url_for('places.detail', slug=place.slug) }}"
+       target="_blank"
+       class="inline-flex items-center gap-2 mt-4 border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 font-semibold px-5 py-2.5 rounded-xl transition text-sm">
+      Ver tu página pública ↗
+    </a>
+  </div>
+{% endif %}
+
+{% if total > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const trend = {{ trend | tojson }};
+  const canvas = document.getElementById('trend-chart');
+  if (!canvas) return;
+
+  new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: trend.map(w => w.label),
+      datasets: [{
+        data: trend.map(w => w.avg),
+        borderColor: '#f97316',
+        backgroundColor: 'rgba(249,115,22,0.1)',
+        borderWidth: 2,
+        pointBackgroundColor: trend.map(w => w.avg ? '#f97316' : 'transparent'),
+        pointRadius: 4,
+        fill: true,
+        tension: 0.35,
+        spanGaps: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          min: 0, max: 5,
+          ticks: { stepSize: 1, color: '#6b7280', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.06)' },
+        },
+        x: {
+          ticks: { color: '#6b7280', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.03)' },
+        }
+      },
+      plugins: { legend: { display: false } },
+    }
+  });
+});
+</script>
+{% endif %}
+
+{% endblock %}

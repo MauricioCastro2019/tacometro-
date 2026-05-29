@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Mis taquerías · Tacómetro{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-black text-white mb-6">Mis taquerías</h1>
+
+{% if places %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% for p in places %}
+      <a href="{{ url_for('owner.dashboard', slug=p.slug) }}"
+         class="bg-dark-700 border border-white/5 hover:border-orange-500/40 rounded-2xl overflow-hidden flex gap-4 items-center p-4 transition group">
+        {% if p.image_url %}
+          <img src="{{ p.image_url }}" alt="{{ p.name }}" loading="lazy"
+               class="w-20 h-20 object-cover rounded-xl shrink-0">
+        {% else %}
+          <div class="w-20 h-20 bg-dark-600 rounded-xl flex items-center justify-center text-3xl shrink-0">🌮</div>
+        {% endif %}
+        <div class="min-w-0">
+          <p class="font-bold text-gray-100 group-hover:text-orange-400 transition">{{ p.name }}</p>
+          {% if p.address %}
+            <p class="text-gray-600 text-xs mt-0.5 truncate">{{ p.address }}</p>
+          {% endif %}
+          <div class="flex items-center gap-3 mt-2">
+            {% if p.avg_score %}
+              <span class="text-orange-500 font-black">{{ p.avg_score }}</span>
+            {% endif %}
+            <span class="text-gray-600 text-xs">{{ p.review_count }} reseña{{ 's' if p.review_count != 1 }}</span>
+            {% if not p.is_active %}
+              <span class="text-xs text-yellow-500/70">Inactiva</span>
+            {% endif %}
+          </div>
+        </div>
+        <svg class="w-4 h-4 text-gray-600 group-hover:text-orange-400 transition ml-auto shrink-0"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="border border-white/5 rounded-2xl p-12 text-center text-gray-600">
+    <p class="text-4xl mb-3">🌮</p>
+    <p class="text-gray-500 font-medium mb-1">Aún no tienes taquerías asignadas.</p>
+    <p class="text-xs">Solicita reclamar tu taquería desde su página pública.</p>
+    <a href="{{ url_for('places.index') }}"
+       class="inline-flex items-center gap-2 mt-4 border border-orange-500/40 text-orange-400 hover:bg-orange-500/10 font-semibold px-5 py-2.5 rounded-xl transition text-sm">
+      Ver taquerías →
+    </a>
+  </div>
+{% endif %}
+{% endblock %}
