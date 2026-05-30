@@ -5,5 +5,6 @@ from app.models.review import Review
 from app.models.favorite import Favorite
 from app.models.suggestion import Suggestion
 from app.models.claim import PlaceClaim
+from app.models.review_reply import ReviewReply
 
-__all__ = ['User', 'Category', 'Place', 'Review', 'Favorite', 'Suggestion', 'PlaceClaim']
+__all__ = ['User', 'Category', 'Place', 'Review', 'Favorite', 'Suggestion', 'PlaceClaim', 'ReviewReply']

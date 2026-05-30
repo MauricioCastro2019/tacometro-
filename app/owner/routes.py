@@ -7,6 +7,7 @@ from app.owner import owner
 from app.models.place import Place
 from app.models.claim import PlaceClaim
 from app.models.category import Category
+from app.models.review_reply import ReviewReply
 from app.extensions import db
 from app.admin.forms import PlaceForm
 from app.utils.image_upload import upload_image
@@ -162,6 +163,44 @@ def edit(slug):
                            horario_parsed=horario_parsed)
 
 
+@owner.route('/<slug>/reviews/<int:review_id>/reply', methods=['POST'])
+@login_required
+def reply_review(slug, review_id):
+    place = Place.query.filter_by(slug=slug).first_or_404()
+    _require_owner_or_admin(place)
+
+    from app.models.review import Review
+    review = db.session.get(Review, review_id) or abort(404)
+    if review.place_id != place.id:
+        abort(404)
+
+    body = request.form.get('body', '').strip()
+    if not body:
+        flash('La respuesta no puede estar vacía.', 'danger')
+        return redirect(url_for('owner.dashboard', slug=slug))
+
+    existing = ReviewReply.query.filter_by(review_id=review_id).first()
+    if existing:
+        existing.body = body
+    else:
+        db.session.add(ReviewReply(review_id=review_id, owner_id=current_user.id, body=body))
+    db.session.commit()
+    flash('Respuesta guardada.', 'success')
+    return redirect(url_for('owner.dashboard', slug=slug))
+
+
+@owner.route('/replies/<int:reply_id>/delete', methods=['POST'])
+@login_required
+def delete_reply(reply_id):
+    reply = db.session.get(ReviewReply, reply_id) or abort(404)
+    place = reply.review.place
+    _require_owner_or_admin(place)
+    db.session.delete(reply)
+    db.session.commit()
+    flash('Respuesta eliminada.', 'success')
+    return redirect(url_for('owner.dashboard', slug=place.slug))
+
+
 @owner.route('/reclamar/<int:place_id>', methods=['POST'])
 @login_required
 def reclamar(place_id):
@@ -171,13 +210,18 @@ def reclamar(place_id):
         flash('Esta taquería ya tiene un dueño verificado.', 'warning')
         return redirect(url_for('places.detail', slug=place.slug))
 
-    existing = PlaceClaim.query.filter_by(
-        place_id=place.id,
-        user_id=current_user.id,
-        status='pending',
+    existing_pending = PlaceClaim.query.filter_by(
+        place_id=place.id, user_id=current_user.id, status='pending',
     ).first()
-    if existing:
+    if existing_pending:
         flash('Ya tienes una solicitud pendiente para esta taquería.', 'info')
+        return redirect(url_for('places.detail', slug=place.slug))
+
+    rejected_count = PlaceClaim.query.filter_by(
+        place_id=place.id, user_id=current_user.id, status='rejected',
+    ).count()
+    if rejected_count >= 2:
+        flash('Tu solicitud fue rechazada más de una vez. Contacta al equipo de Tacómetro para más información.', 'warning')
         return redirect(url_for('places.detail', slug=place.slug))
 
     claim = PlaceClaim(

@@ -45,6 +45,7 @@ def change_password():
 def profile():
     from app.models.favorite import Favorite
     from app.models.place import Place
+    from app.models.claim import PlaceClaim
     reviews = (
         Review.query
         .filter_by(user_id=current_user.id)
@@ -58,7 +59,14 @@ def profile():
         .order_by(Favorite.created_at.desc())
         .all()
     )
-    return render_template('main/profile.html', reviews=reviews, fav_places=fav_places)
+    pending_claims = (
+        PlaceClaim.query
+        .filter_by(user_id=current_user.id, status='pending')
+        .order_by(PlaceClaim.created_at.desc())
+        .all()
+    )
+    return render_template('main/profile.html', reviews=reviews, fav_places=fav_places,
+                           pending_claims=pending_claims)
 
 
 @main.route('/mapa')
