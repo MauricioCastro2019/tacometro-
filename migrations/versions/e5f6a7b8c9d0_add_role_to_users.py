@@ -20,7 +20,7 @@ def upgrade():
         batch_op.add_column(sa.Column('role', sa.String(20), nullable=True))
 
     # Backfill: promover admins existentes, asignar 'user' al resto
-    op.execute("UPDATE users SET role = 'admin' WHERE is_admin = TRUE OR is_admin = 1")
+    op.execute("UPDATE users SET role = 'admin' WHERE is_admin IS TRUE")
     op.execute("UPDATE users SET role = 'user' WHERE role IS NULL")
 
     # Hacer NOT NULL y eliminar is_admin
