@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Sobre Tacómetro · León, Guanajuato{% endblock %}
+{% block meta_description %}Tacómetro es el ranking callejero más honesto de las taquerías de León, Guanajuato. Califica, descubre y comparte tus taqueadas favoritas.{% endblock %}
+{% block og_title %}¿Qué es Tacómetro? · León, Guanajuato{% endblock %}
+{% block og_description %}La plataforma donde los tacomanos de León califican y rankean las mejores taquerías de la ciudad. Transparente, local y sin filtros.{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+
+  <!-- Header -->
+  <div class="text-center py-8 pb-4">
+    <img src="{{ url_for('static', filename='img/logo.png') }}"
+         alt="Tacómetro" class="h-20 w-auto mx-auto mb-4 drop-shadow-xl"
+         onerror="this.style.display='none'">
+    <h1 class="text-4xl font-black text-white mb-2">
+      ¿Qué es <span class="text-orange-500">Tacómetro</span>?
+    </h1>
+    <p class="text-gray-400 text-lg">
+      El ranking callejero más honesto de León, Guanajuato.
+    </p>
+  </div>
+
+  <div class="border-t border-white/5 mb-8"></div>
+
+  <!-- Descripción principal -->
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-6 mb-6">
+    <p class="text-gray-300 leading-relaxed mb-4">
+      Tacómetro es una plataforma local creada por y para los
+      <strong class="text-orange-400">tacomanos de León</strong>.
+      Aquí puedes calificar las taquerías que visitas, leer lo que otros opinan
+      y descubrir joyas escondidas en tu colonia o en cualquier rincón de la ciudad.
+    </p>
+    <p class="text-gray-400 leading-relaxed">
+      No somos una app de delivery, ni una guía turística. Somos un termómetro taquero
+      construido por la comunidad, sin patrocinios que distorsionen los resultados.
+      Tu calificación vale igual que la de cualquier otro, punto.
+    </p>
+  </div>
+
+  <!-- Cómo funciona -->
+  <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+    <span class="text-orange-500">🌡️</span> ¿Cómo funciona el Tacómetro?
+  </h2>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+    <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+      <p class="text-2xl mb-2">🔍</p>
+      <p class="font-bold text-white mb-1">Busca o encuentra</p>
+      <p class="text-gray-500 text-sm">Encuentra tu taquería favorita por nombre, zona o en el mapa interactivo.</p>
+    </div>
+    <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+      <p class="text-2xl mb-2">⭐</p>
+      <p class="font-bold text-white mb-1">Califica lo que importa</p>
+      <p class="text-gray-500 text-sm">Sabor (35%), Salsa (25%), Precio/calidad (15%), Servicio (15%), Higiene (10%).</p>
+    </div>
+    <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+      <p class="text-2xl mb-2">📊</p>
+      <p class="font-bold text-white mb-1">Genera el ranking</p>
+      <p class="text-gray-500 text-sm">Cada calificación mueve el ranking. El promedio es el Tacómetro real del lugar.</p>
+    </div>
+    <div class="bg-dark-700 border border-white/5 rounded-2xl p-5">
+      <p class="text-2xl mb-2">📱</p>
+      <p class="font-bold text-white mb-1">Comparte</p>
+      <p class="text-gray-500 text-sm">Comparte tu taqueada en WhatsApp o Instagram. Ayuda a otros a descubrir buenos tacos.</p>
+    </div>
+  </div>
+
+  <!-- Criterios de calificación -->
+  <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+    <span class="text-orange-500">📐</span> Los criterios del Tacómetro
+  </h2>
+
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-5 mb-8">
+    {% set criterios = [
+      ('🌶️', 'Sabor', '35%', 'El protagonista. Qué tan buena está la carne.'),
+      ('🥣', 'Salsa', '25%', 'La salsa es parte del taco. Una mala salsa hunde al mejor bistec.'),
+      ('💰', 'Precio/calidad', '15%', '¿Valió lo que pagaste? Tacos de 15 pueden valer más que los de 40.'),
+      ('🤝', 'Servicio', '15%', 'Qué tan rápido y amable fue el taquero.'),
+      ('✨', 'Higiene', '10%', 'Limpieza del puesto, tortillas, utensilios.'),
+    ] %}
+    <div class="space-y-4">
+      {% for icono, nombre, peso, desc in criterios %}
+        <div class="flex items-start gap-3">
+          <span class="text-xl shrink-0 mt-0.5">{{ icono }}</span>
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="font-semibold text-gray-200">{{ nombre }}</span>
+              <span class="text-xs font-bold text-orange-500 bg-orange-500/10 px-1.5 py-0.5 rounded">{{ peso }}</span>
+            </div>
+            <p class="text-gray-500 text-sm">{{ desc }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Quiénes somos -->
+  <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+    <span class="text-orange-500">🙌</span> Quiénes somos
+  </h2>
+
+  <div class="bg-dark-700 border border-white/5 rounded-2xl p-6 mb-8">
+    <p class="text-gray-300 leading-relaxed mb-3">
+      Tacómetro es un proyecto independiente hecho en León, Guanajuato.
+      No tenemos afiliación con ninguna taquería ni recibimos dinero de los establecimientos
+      que aparecen en la plataforma.
+    </p>
+    <p class="text-gray-400 leading-relaxed text-sm">
+      Si quieres reportar un problema, proponer mejoras o colaborar,
+      escríbenos directamente desde las redes sociales. Somos accesibles.
+    </p>
+  </div>
+
+  <!-- CTAs -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+    <a href="{{ url_for('califica.inicio') }}"
+       class="flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-orange-500/20">
+      🌡️ Calificar ahora
+    </a>
+    <a href="{{ url_for('places.index') }}"
+       class="flex items-center justify-center gap-2 bg-dark-700 border border-white/10 hover:border-orange-500/30 text-gray-300 hover:text-orange-400 font-semibold py-3.5 rounded-xl transition">
+      🌮 Ver taquerías
+    </a>
+    <a href="{{ url_for('main.mapa') }}"
+       class="flex items-center justify-center gap-2 bg-dark-700 border border-white/10 hover:border-orange-500/30 text-gray-300 hover:text-orange-400 font-semibold py-3.5 rounded-xl transition">
+      📍 Ver mapa
+    </a>
+  </div>
+
+  <p class="text-center text-xs text-gray-700 pb-4">
+    Tacómetro · León, Guanajuato · 2025 🌮
+  </p>
+
+</div>
+{% endblock %}

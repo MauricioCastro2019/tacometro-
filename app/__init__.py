@@ -14,6 +14,14 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
+    # Guardia de seguridad: SECRET_KEY inseguro en producción
+    _default_key = 'dev-secret-key-change-in-prod'
+    if config_name == 'production' and app.config.get('SECRET_KEY', '') == _default_key:
+        logger.critical(
+            'SEGURIDAD CRÍTICA: SECRET_KEY es el valor por defecto inseguro. '
+            'Establece SECRET_KEY en las variables de entorno antes de lanzar.'
+        )
+
     # Inicializar extensiones
     db.init_app(app)
     migrate.init_app(app, db)

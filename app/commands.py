@@ -51,9 +51,7 @@ def seed_categories():
 
 @current_app.cli.command('seed')
 def seed():
-    """Carga datos iniciales: categorías, admin y taquerías de ejemplo."""
-
-    # Categorías
+    """Carga datos iniciales: categorías y taquerías de ejemplo."""
     click.echo('Creando categorías...')
     for name, icon in TACO_CATEGORIES:
         if not Category.query.filter_by(name=name).first():
@@ -62,17 +60,6 @@ def seed():
     db.session.commit()
     click.echo(f'{len(TACO_CATEGORIES)} tipos de taco listos.')
 
-    # Usuario admin
-    if not User.query.filter_by(email='admin@tacometro.mx').first():
-        admin = User(username='admin', email='admin@tacometro.mx', is_admin=True)
-        admin.set_password('admin1234')
-        db.session.add(admin)
-        db.session.commit()
-        click.echo('Admin creado: admin@tacometro.mx / admin1234')
-    else:
-        click.echo('Admin ya existe.')
-
-    # Taquerías de ejemplo
     pastor = Category.query.filter_by(slug='al-pastor').first()
     suadero = Category.query.filter_by(slug='suadero').first()
     barbacoa = Category.query.filter_by(slug='barbacoa').first()
@@ -116,3 +103,52 @@ def seed():
 
     db.session.commit()
     click.echo('Seed completado.')
+
+
+@current_app.cli.command('create-admin')
+@click.option('--username', prompt='Nombre de usuario', help='Username del nuevo admin')
+@click.option('--phone', prompt='Teléfono (10 dígitos)', help='Teléfono del nuevo admin')
+@click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True,
+              help='Contraseña del nuevo admin')
+def create_admin(username, phone, password):
+    """Crea un usuario administrador o promueve uno existente."""
+    existing_phone = User.query.filter_by(phone=phone).first()
+    existing_username = User.query.filter_by(username=username).first()
+
+    if existing_phone and existing_phone.username != username:
+        click.echo(f'Error: el teléfono {phone} ya está registrado con otro usuario.', err=True)
+        return
+
+    if existing_username and existing_username.phone != phone:
+        click.echo(f'Error: el usuario "{username}" ya existe con otro teléfono.', err=True)
+        return
+
+    user = existing_phone or existing_username
+    if user:
+        if user.is_admin:
+            click.echo(f'"{username}" ya es administrador.')
+        else:
+            user.role = 'admin'
+            db.session.commit()
+            click.echo(f'Usuario "{username}" promovido a administrador.')
+    else:
+        user = User(username=username, phone=phone, role='admin')
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        click.echo(f'Admin creado: {username} / {phone}')
+
+
+@current_app.cli.command('set-role')
+@click.argument('username')
+@click.argument('role', type=click.Choice(['user', 'admin', 'owner']))
+def set_role(username, role):
+    """Asigna un rol a un usuario existente. Uso: flask set-role <username> <role>"""
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        click.echo(f'Usuario "{username}" no encontrado.', err=True)
+        return
+    old_role = user.role
+    user.role = role
+    db.session.commit()
+    click.echo(f'"{username}": {old_role} → {role}')

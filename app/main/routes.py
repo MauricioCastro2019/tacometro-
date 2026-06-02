@@ -97,6 +97,11 @@ def suggest():
     return render_template('main/suggest.html')
 
 
+@main.route('/sobre')
+def sobre():
+    return render_template('main/sobre.html')
+
+
 @main.route('/robots.txt')
 def robots():
     from flask import Response

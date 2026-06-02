@@ -28,7 +28,12 @@ def register():
         )
         user.set_password(form.password.data)
         db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            flash('Error al crear la cuenta. El teléfono o usuario ya está en uso.', 'danger')
+            return render_template('auth/register.html', form=form)
         flash('¡Cuenta creada! Ya puedes iniciar sesión.', 'success')
         return redirect(url_for('auth.login'))
 

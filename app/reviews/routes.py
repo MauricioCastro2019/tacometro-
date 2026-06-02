@@ -1,6 +1,6 @@
 import logging
 from flask import render_template, redirect, url_for, flash, request, abort
-from flask_login import current_user
+from flask_login import current_user, login_required
 from app.reviews import reviews
 from app.reviews.forms import ReviewForm
 from app.extensions import db
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 @reviews.route('/new', methods=['GET', 'POST'])
+@login_required
 def create():
     place_id = request.args.get('place_id', type=int) or request.form.get('place_id', type=int)
     if not place_id:
@@ -19,11 +20,10 @@ def create():
 
     place = db.session.get(Place, place_id) or abort(404)
 
-    if current_user.is_authenticated:
-        existing = Review.query.filter_by(user_id=current_user.id, place_id=place.id).first()
-        if existing:
-            flash('Ya tienes una reseña para esta taquería.', 'warning')
-            return redirect(url_for('places.detail', slug=place.slug))
+    existing = Review.query.filter_by(user_id=current_user.id, place_id=place.id).first()
+    if existing:
+        flash('Ya tienes una reseña para esta taquería.', 'warning')
+        return redirect(url_for('places.detail', slug=place.slug))
 
     form = ReviewForm()
     if request.method == 'GET':
@@ -36,7 +36,7 @@ def create():
                 foto_url = upload_image(form.foto_comida.data)
 
             review = Review(
-                user_id=current_user.id if current_user.is_authenticated else None,
+                user_id=current_user.id,
                 nickname=form.nickname.data.strip() if form.nickname.data else None,
                 place_id=place.id,
                 sabor=form.sabor.data,
@@ -60,13 +60,12 @@ def create():
 
 
 @reviews.route('/<int:review_id>/edit', methods=['GET', 'POST'])
+@login_required
 def edit(review_id):
     review = db.session.get(Review, review_id) or abort(404)
 
-    if not current_user.is_authenticated:
-        flash('Debes iniciar sesión para editar una reseña.', 'warning')
-        return redirect(url_for('auth.login'))
-    if review.user_id != current_user.id:
+    if not current_user.can_edit_review(review):
+        flash('Solo puedes modificar tus propias reseñas.', 'danger')
         abort(403)
 
     form = ReviewForm(obj=review)
@@ -130,11 +129,11 @@ def edit(review_id):
 
 
 @reviews.route('/<int:review_id>/delete', methods=['POST'])
+@login_required
 def delete(review_id):
     review = db.session.get(Review, review_id) or abort(404)
-    if not current_user.is_authenticated:
-        abort(403)
-    if review.user_id != current_user.id and not current_user.is_admin:
+    if not current_user.can_delete_review(review):
+        flash('No tienes permisos para eliminar esta reseña.', 'danger')
         abort(403)
     try:
         slug = review.place.slug

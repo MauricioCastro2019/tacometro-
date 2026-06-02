@@ -1,8 +1,8 @@
 import json
 import math
 import logging
-from flask import render_template, redirect, url_for, flash, request, jsonify, session
-from flask_login import current_user
+from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask_login import current_user, login_required
 from app.califica import califica
 from app.extensions import db
 from app.models.place import Place
@@ -55,6 +55,8 @@ def inicio():
 
 
 @califica.route('/nueva', methods=['GET', 'POST'])
+@login_required
+@rate_limit(3, 3600)
 def nueva_taqueria():
     """Paso 2: Agregar nueva taquería (si no existe)."""
     if request.method == 'POST':
@@ -153,6 +155,7 @@ def rate(place_id):
         flash('Taquería no encontrada.', 'danger')
         return redirect(url_for('califica.inicio'))
 
+    # Solo verificar duplicado para usuarios autenticados
     if current_user.is_authenticated:
         existing = Review.query.filter_by(
             user_id=current_user.id, place_id=place.id
@@ -160,15 +163,6 @@ def rate(place_id):
         if existing:
             flash('Ya calificaste esta taquería. Puedes editar tu reseña.', 'info')
             return redirect(url_for('califica.confirmacion', review_id=existing.id))
-    else:
-        anon_id = session.get(f'anon_review_{place.id}')
-        if anon_id:
-            anon_review = db.session.get(Review, anon_id)
-            if anon_review and anon_review.place_id == place.id:
-                flash('Ya calificaste esta taquería desde este dispositivo.', 'info')
-                return redirect(url_for('califica.confirmacion', review_id=anon_id))
-            else:
-                session.pop(f'anon_review_{place.id}', None)
 
     if request.method == 'POST':
         try:
@@ -215,6 +209,7 @@ def rate(place_id):
             nickname = (request.form.get('nickname', '').strip() or None)
             if nickname:
                 nickname = nickname[:64]
+            user_id = current_user.id if current_user.is_authenticated else None
             comentario = request.form.get('comentario', '').strip() or None
             tacos_probados = (request.form.get('tacos_probados', '').strip() or None)
             if tacos_probados:
@@ -230,7 +225,7 @@ def rate(place_id):
                 postres = postres[:128]
 
             review = Review(
-                user_id=current_user.id if current_user.is_authenticated else None,
+                user_id=user_id,
                 nickname=nickname,
                 place_id=place.id,
                 sabor=sabor,
@@ -249,11 +244,6 @@ def rate(place_id):
             )
             db.session.add(review)
             db.session.commit()
-
-            if not current_user.is_authenticated:
-                session[f'anon_review_{place.id}'] = review.id
-                session.modified = True
-
             return redirect(url_for('califica.confirmacion', review_id=review.id))
 
         except Exception:
