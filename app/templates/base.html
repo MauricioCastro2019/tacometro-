@@ -325,5 +325,48 @@
     </div>
   </footer>
 
+  <script>
+  (function () {
+    async function _compressImage(file) {
+      if (file.size < 800 * 1024) return file;
+      return new Promise(function (resolve) {
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        img.onload = function () {
+          URL.revokeObjectURL(url);
+          var MAX = 1280, w = img.naturalWidth, h = img.naturalHeight;
+          if (w > MAX || h > MAX) {
+            var r = Math.min(MAX / w, MAX / h);
+            w = Math.round(w * r); h = Math.round(h * r);
+          }
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          canvas.toBlob(function (blob) {
+            resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+          }, 'image/jpeg', 0.82);
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+        img.src = url;
+      });
+    }
+
+    document.addEventListener('change', function (e) {
+      var input = e.target;
+      if (input.tagName !== 'INPUT' || input.type !== 'file') return;
+      if (!(input.accept || '').toLowerCase().includes('image')) return;
+      var file = input.files && input.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      _compressImage(file).then(function (compressed) {
+        if (compressed === file) return;
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(compressed);
+          input.files = dt.files;
+        } catch (_) {}
+      });
+    });
+  })();
+  </script>
 </body>
 </html>
